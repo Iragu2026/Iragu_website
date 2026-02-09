@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+frontend/node_modules/
+
+# env / secrets
+backend/config/config.env
+.env
+.env.*
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+*.log
+
+# runtime / db artifacts
+.mongodb-data/
+.mongodb.pid
+.mongodb.log
+
+# build outputs
+dist/
+frontend/dist/
+
+# OS/editor
+.DS_Store
+.vscode/
+
