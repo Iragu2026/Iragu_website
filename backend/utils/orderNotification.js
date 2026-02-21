@@ -80,7 +80,10 @@ const buildOrderNotificationMessage = ({ order, customer }) => {
 export const sendAdminOrderNotification = async ({ order, customer }) => {
     const adminEmail = getAdminOrderEmail();
     if (!adminEmail || !order) {
-        return;
+        if (!adminEmail) {
+            console.warn("Admin order notification skipped: ADMIN_EMAIL/SMTP_USER is missing or invalid");
+        }
+        return false;
     }
 
     await sendEmail({
@@ -88,13 +91,20 @@ export const sendAdminOrderNotification = async ({ order, customer }) => {
         subject: `New Order Received - #${String(order._id || "").slice(-8).toUpperCase()}`,
         message: buildOrderNotificationMessage({ order, customer }),
     });
+    return true;
 };
 
 export const queueAdminOrderNotification = ({ order, customer }) => {
     if (!order) return;
-    setImmediate(() => {
-        sendAdminOrderNotification({ order, customer }).catch((error) => {
-            console.warn("Admin order notification failed:", error.message);
+    const orderCode = String(order?._id || "").slice(-8).toUpperCase();
+    void sendAdminOrderNotification({ order, customer })
+        .then((sent) => {
+            if (sent) {
+                console.log(`Admin order notification sent for order #${orderCode}`);
+            }
+        })
+        .catch((error) => {
+            const errorCode = error?.code ? ` (${error.code})` : "";
+            console.warn(`Admin order notification failed${errorCode}:`, error?.message || error);
         });
-    });
 };
