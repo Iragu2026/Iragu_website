@@ -157,18 +157,12 @@ export const uploadProductImages = handleAsyncError(async (req, res, next) => {
 
     const uploads = [];
     for (const file of files) {
-        const metadata = await sharp(file.buffer).metadata();
-        const shouldResize = typeof metadata.width === "number" && metadata.width > 2400;
         const optimizedBuffer = await sharp(file.buffer)
             .rotate()
-            .resize(
-                shouldResize
-                    ? { width: 2400, withoutEnlargement: true }
-                    : undefined
-            )
+            .resize({ width: 1800, withoutEnlargement: true })
             .webp({
-                quality: 90,
-                effort: 5,
+                quality: 82,
+                effort: 3,
                 smartSubsample: true,
             })
             .toBuffer();

@@ -5,7 +5,7 @@ import Product from "../models/productModel.js";
 import handleAsyncError from "../middleware/handleAsyncError.js";
 import HandleError from "../utils/handleError.js";
 import { validateAndNormalizeAddressFromPinCode } from "../utils/indiaPincode.js";
-import { sendAdminOrderNotification } from "../utils/orderNotification.js";
+import { queueAdminOrderNotification } from "../utils/orderNotification.js";
 
 const SHIPPING_FLAT = 100;
 const GIFT_WRAP_FLAT = 50;
@@ -303,15 +303,11 @@ export const verifyRazorpayPaymentAndCreateOrder = handleAsyncError(async (req, 
         orderStatus: "Processing",
     });
 
-    try {
-        await sendAdminOrderNotification({ order, customer: req.user });
-    } catch (error) {
-        console.warn("Admin order notification failed:", error.message);
-    }
-
     res.status(201).json({
         success: true,
         message: "Payment verified and order created successfully",
         order,
     });
+
+    queueAdminOrderNotification({ order, customer: req.user });
 });

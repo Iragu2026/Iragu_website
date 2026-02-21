@@ -89,3 +89,12 @@ export const sendAdminOrderNotification = async ({ order, customer }) => {
         message: buildOrderNotificationMessage({ order, customer }),
     });
 };
+
+export const queueAdminOrderNotification = ({ order, customer }) => {
+    if (!order) return;
+    setImmediate(() => {
+        sendAdminOrderNotification({ order, customer }).catch((error) => {
+            console.warn("Admin order notification failed:", error.message);
+        });
+    });
+};

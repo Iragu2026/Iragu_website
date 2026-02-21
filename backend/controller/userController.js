@@ -239,16 +239,12 @@ export const updateProfileAvatar = handleAsyncError(async (req, res, next) => {
         return next(new HandleError("User not found", 404));
     }
 
-    const metadata = await sharp(req.file.buffer).metadata();
-    const shouldResize = typeof metadata.width === "number" && metadata.width > 1200;
     const optimizedBuffer = await sharp(req.file.buffer)
         .rotate()
-        .resize(
-            shouldResize ? { width: 1200, withoutEnlargement: true } : undefined
-        )
+        .resize({ width: 1000, withoutEnlargement: true })
         .webp({
-            quality: 90,
-            effort: 5,
+            quality: 80,
+            effort: 2,
             smartSubsample: true,
         })
         .toBuffer();
