@@ -16,6 +16,14 @@ export default (err, req, res, next) => {
         err = new HandleError(message, 400);
     }
 
+    // Multer upload errors
+    if (err.name === "MulterError") {
+        err = new HandleError(err.message, 400);
+    }
+    if (err.message === "Only image files are allowed") {
+        err = new HandleError(err.message, 400);
+    }
+
     res.status(err.statusCode).json({
         success: false,
         message: err.message

@@ -1,0 +1,19 @@
+@reference "tailwindcss";
+
+@layer components {
+  .pdp-container {
+    @apply mx-auto max-w-7xl px-4;
+  }
+
+  @media (min-width: 640px) {
+    .pdp-container {
+      @apply px-6;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .pdp-container {
+      @apply px-8;
+    }
+  }
+}

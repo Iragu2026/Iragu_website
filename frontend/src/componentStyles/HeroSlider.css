@@ -1,0 +1,55 @@
+@reference "tailwindcss";
+
+@layer components {
+  .heroSlider {
+    @apply relative w-full overflow-hidden;
+  }
+
+  .heroSlider__frame {
+    @apply relative w-full overflow-hidden;
+  }
+
+  .heroSlider__swiper {
+    @apply w-full;
+  }
+
+  .heroSlider__media {
+    @apply relative aspect-[16/9] w-full overflow-hidden;
+  }
+
+  .heroSlider__image {
+    @apply h-full w-full object-cover object-center;
+    transform: scale(1.03);
+    transition: transform 1400ms ease;
+  }
+
+  .heroSlider__veil {
+    @apply pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent;
+    opacity: 0.85;
+    transition: opacity 900ms ease;
+  }
+
+  .heroSlider__bottom {
+    @apply absolute inset-x-0 bottom-0 z-10 flex items-center justify-between px-4 pb-3 sm:px-6 sm:pb-4;
+  }
+
+  .heroSlider__pagination {
+    @apply static flex items-center gap-1.5;
+  }
+
+  .heroSlider__pagination .swiper-pagination-bullet {
+    @apply m-0 h-1.5 w-5 rounded-full bg-white/45 opacity-100 transition;
+  }
+
+  .heroSlider__pagination .swiper-pagination-bullet-active {
+    @apply w-8 bg-white;
+  }
+
+  .heroSlider .swiper-slide-active .heroSlider__image {
+    transform: scale(1);
+  }
+
+  .heroSlider .swiper-slide-active .heroSlider__veil {
+    opacity: 1;
+  }
+}

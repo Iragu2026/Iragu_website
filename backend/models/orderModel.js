@@ -2,9 +2,25 @@ import mongoose from "mongoose";
 
 const orderSchema = new mongoose.Schema({
     shippingInfo: {
+        firstName: {
+            type: String,
+            default: "",
+        },
+        lastName: {
+            type: String,
+            default: "",
+        },
+        gst: {
+            type: String,
+            default: "",
+        },
         address: {
             type: String,
             required: true,
+        },
+        apartment: {
+            type: String,
+            default: "",
         },
         city: {
             type: String,
@@ -27,6 +43,23 @@ const orderSchema = new mongoose.Schema({
             required: true,
         },
     },
+    // Billing details (optional). If not provided, billing can be treated same as shipping.
+    billingType: {
+        type: String,
+        default: "same", // "same" | "different"
+    },
+    billingInfo: {
+        firstName: { type: String, default: "" },
+        lastName: { type: String, default: "" },
+        gst: { type: String, default: "" },
+        address: { type: String, default: "" },
+        apartment: { type: String, default: "" },
+        city: { type: String, default: "" },
+        state: { type: String, default: "" },
+        country: { type: String, default: "" },
+        pinCode: { type: Number },
+        phoneNo: { type: Number },
+    },
     orderItems: [
         {
             name: {
@@ -40,6 +73,15 @@ const orderSchema = new mongoose.Schema({
             quantity: {
                 type: Number,
                 required: true,
+            },
+            // Optional: for products with sizes (e.g. Salwars)
+            size: {
+                type: String,
+                default: "",
+            },
+            color: {
+                type: String,
+                default: "",
             },
             image: {
                 type: String,
@@ -70,7 +112,23 @@ const orderSchema = new mongoose.Schema({
         status: {
             type: String,
             required: true,
-        }
+        },
+        provider: {
+            type: String,
+            default: "razorpay",
+        },
+        method: {
+            type: String,
+            default: "Razorpay",
+        },
+        razorpayOrderId: {
+            type: String,
+            default: "",
+        },
+        razorpaySignature: {
+            type: String,
+            default: "",
+        },
     },
     paidAt: {
         type: Date,
@@ -81,12 +139,12 @@ const orderSchema = new mongoose.Schema({
         required: true,
         default: 0,
     },
-    taxPrice: {
+    shippingPrice: {
         type: Number,
         required: true,
         default: 0,
     },
-    shippingPrice: {
+    giftWrapPrice: {
         type: Number,
         required: true,
         default: 0,

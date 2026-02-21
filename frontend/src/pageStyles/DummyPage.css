@@ -1,0 +1,15 @@
+@reference "tailwindcss";
+
+@layer components {
+  .dummyTitle {
+    font-family: "Cormorant Garamond", serif;
+    @apply text-2xl font-semibold tracking-wide text-[#5b0a4b];
+  }
+
+  @media (min-width: 640px) {
+    .dummyTitle {
+      @apply text-3xl;
+    }
+  }
+}
+

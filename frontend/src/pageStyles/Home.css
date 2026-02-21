@@ -1,0 +1,23 @@
+@reference "tailwindcss";
+
+@layer components {
+  .sectionTitle {
+    font-family: "Cormorant Garamond", serif;
+    @apply text-center text-xl font-medium uppercase tracking-[0.35em];
+    color: var(--brand);
+  }
+
+  .sectionWrap {
+    @apply py-10;
+  }
+
+  @media (min-width: 640px) {
+    .sectionTitle {
+      @apply text-2xl;
+    }
+    .sectionWrap {
+      @apply py-14;
+    }
+  }
+}
+

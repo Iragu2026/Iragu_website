@@ -1,0 +1,10 @@
+@reference "tailwindcss";
+
+@layer components {
+  .promoBar {
+    @apply text-white;
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: var(--brand-ink);
+  }
+}
+

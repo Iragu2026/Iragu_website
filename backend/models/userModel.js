@@ -12,11 +12,14 @@ const userSchema = new mongoose.Schema({
         required: [true, "Please enter your name"],
         maxLength: [30, "Name cannot exceed 30 characters"],
         minLength: [4, "Name should have at least 4 characters"],
+        trim: true,
     },
     email: {
         type: String,
         required: [true, "Please enter your email"],
         unique: true,
+        trim: true,
+        lowercase: true,
         validate: [validator.isEmail, "Please enter a valid email"],
     },
     password: {
@@ -34,13 +37,23 @@ const userSchema = new mongoose.Schema({
             type: String,
             required: true,
         },
+        key: {
+            type: String,
+            default: "",
+        },
     },
     role: {
         type: String,
         default: "user",
+        enum: ["user", "admin"],
     },
     resetPasswordToken: String,
-    resetPasswordExpire: Date
+    resetPasswordExpire: Date,
+    // Cart persisted per user (same shape as frontend: product, name, price, image, stock, quantity, size)
+    cart: {
+        type: Object,
+        default: () => ({ cartItems: [], orderNote: "", giftWrap: false }),
+    },
 }, { timestamps: true });
 
 

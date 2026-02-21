@@ -1,0 +1,180 @@
+/* ─── Policy Modal Overlay ─── */
+.policy-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 24px;
+  animation: policyFadeIn 0.2s ease;
+}
+
+@keyframes policyFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ─── Modal Container ─── */
+.policy-modal-container {
+  position: relative;
+  width: 100%;
+  max-width: 620px;
+  max-height: 80vh;
+  background: #fff;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  animation: policySlideUp 0.25s ease;
+}
+
+@keyframes policySlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Header ─── */
+.policy-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px 16px;
+  flex-shrink: 0;
+}
+
+.policy-modal-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1f1f1f;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.policy-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #6b6b6b;
+  border-radius: 50%;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.policy-modal-close:hover {
+  background: #f0f0f0;
+  color: #1f1f1f;
+}
+
+/* ─── Scrollable Body ─── */
+.policy-modal-body {
+  padding: 0 28px 28px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Thin custom scrollbar */
+.policy-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+.policy-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.policy-modal-body::-webkit-scrollbar-thumb {
+  background: #d4d4d4;
+  border-radius: 3px;
+}
+.policy-modal-body::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
+}
+
+/* ─── Policy Content Typography ─── */
+.policy-content p {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: #3a3a3a;
+  margin: 0 0 14px;
+}
+
+.policy-content h3 {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: #1f1f1f;
+  margin: 22px 0 8px;
+}
+
+.policy-content h4 {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #1f1f1f;
+  margin: 16px 0 6px;
+}
+
+.policy-content ul {
+  margin: 0 0 14px;
+  padding-left: 22px;
+}
+
+.policy-content ul li {
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: #3a3a3a;
+  margin-bottom: 4px;
+}
+
+.policy-content strong {
+  font-weight: 600;
+  color: #1f1f1f;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 640px) {
+  .policy-modal-overlay {
+    padding: 16px;
+  }
+
+  .policy-modal-container {
+    max-height: 85vh;
+  }
+
+  .policy-modal-header {
+    padding: 20px 20px 12px;
+  }
+
+  .policy-modal-title {
+    font-size: 19px;
+  }
+
+  .policy-modal-body {
+    padding: 0 20px 24px;
+  }
+
+  .policy-content p,
+  .policy-content ul li {
+    font-size: 13.5px;
+  }
+
+  .policy-content h3 {
+    font-size: 14.5px;
+  }
+
+  .policy-content h4 {
+    font-size: 13.5px;
+  }
+}

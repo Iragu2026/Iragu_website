@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+/* Global base styles */
+@layer base {
+  :root {
+    color-scheme: light;
+
+    /* Brand (Sage Green) */
+    --brand: #9bbf9a;
+    --brand-dark: #7ea67f;
+    --brand-ink: #2a3a33;
+  }
+
+  body {
+    @apply bg-[#fbf7f0] text-[#1f1f1f] antialiased;
+    font-family: Poppins, Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    overflow-x: hidden;
+  }
+}
+
+/* Small design tokens / helpers */
+@layer utilities {
+  .container-page {
+    @apply mx-auto w-full max-w-screen-2xl px-6;
+  }
+
+  .btn-primary {
+    @apply relative inline-flex items-center justify-center overflow-hidden px-8 py-3 text-xs font-semibold uppercase tracking-[0.25em] transition-all duration-300 focus:outline-none;
+    color: var(--brand-ink);
+    border: 1.5px solid var(--brand-ink);
+    background: transparent;
+  }
+
+  .btn-primary::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--brand-ink);
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 0;
+  }
+
+  .btn-primary:hover::before {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+
+  .btn-primary:hover {
+    @apply text-white;
+    color: #ffffff;
+  }
+
+  /* Text must sit above the ::before fill layer */
+  .btn-primary {
+    isolation: isolate;
+  }
+
+  .btn-primary__text {
+    position: relative;
+    z-index: 1;
+  }
+
+  .btn-primary:focus-visible {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 40%, transparent);
+  }
+
+  .link-muted {
+    @apply text-sm hover:text-white;
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+  }
+  .link-muted:visited {
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  @media (min-width: 640px) {
+    .container-page {
+      @apply px-8;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container-page {
+      @apply px-12;
+    }
+  }
+}
+
+/* ── Page fade-in on route change ── */
+.page-fade-in {
+  animation: pageFadeIn 0.35s ease-out both;
+}
+
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

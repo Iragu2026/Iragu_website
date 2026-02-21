@@ -2,8 +2,6 @@ import handleAsyncError from "./handleAsyncError.js";
 import HandleError from "../utils/handleError.js";
 import jwt from "jsonwebtoken";
 import User from "../models/userModel.js";
-import dotenv from "dotenv";
-dotenv.config();
 
 export const verifyUserAuth = handleAsyncError(async (req, res, next) => {
     let token = null;
@@ -26,6 +24,9 @@ export const verifyUserAuth = handleAsyncError(async (req, res, next) => {
     }
     const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
     req.user = await User.findById(decoded.id);
+    if (!req.user) {
+        return next(new HandleError("User not found. Please login again", 401));
+    }
     next();
 });
 
@@ -33,6 +34,9 @@ export const verifyUserAuth = handleAsyncError(async (req, res, next) => {
 
 export const roleBasedAccess = (...roles) => {
     return (req, res, next) => {
+        if (!req.user) {
+            return next(new HandleError("Please login to access this resource", 401));
+        }
         if(!roles.includes(req.user.role)) {
             return next(new HandleError(`Role: ${req.user.role} is not allowed to access this resource`, 403));
         }

@@ -1,0 +1,16 @@
+@reference "tailwindcss";
+
+.search-overlay-panel {
+  animation: searchSlideDown 0.22s ease-out;
+}
+
+@keyframes searchSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

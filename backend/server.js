@@ -17,10 +17,17 @@ const server = app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
 });
 
-process.on("unHandledRejection", (err) => {
+process.on("unhandledRejection", (err) => {
     console.log(`Error: ${err.message}`);
     console.log(`Shutting down the server due to Unhandled Promise Rejection`);
     server.close(() => {
         process.exit(1);
+    });
+});
+
+process.on("SIGTERM", () => {
+    console.log("SIGTERM received. Closing HTTP server...");
+    server.close(() => {
+        console.log("HTTP server closed");
     });
 });

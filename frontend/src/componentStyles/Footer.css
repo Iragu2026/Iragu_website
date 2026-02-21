@@ -1,0 +1,37 @@
+@reference "tailwindcss";
+
+@layer components {
+  /* ── Section headings ── */
+  .footer-heading {
+    @apply relative pb-3 text-[11px] font-bold uppercase tracking-[0.28em] text-white;
+  }
+  .footer-heading::after {
+    content: "";
+    @apply absolute bottom-0 left-0 h-[2px] w-8 rounded-full;
+    background: var(--brand);
+  }
+
+  /* ── Link style (works on <a>, <Link>, and <button>) ── */
+  .footer-link {
+    @apply inline-block cursor-pointer border-0 bg-transparent p-0 text-left text-[13px] leading-normal transition;
+    color: rgba(255, 255, 255, 0.78);
+    text-decoration: none;
+    text-underline-offset: 4px;
+    text-decoration-thickness: 1px;
+  }
+  .footer-link:visited {
+    color: rgba(255, 255, 255, 0.78);
+  }
+  .footer-link:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 35%, transparent);
+    border-radius: 6px;
+  }
+  .footer-link:hover,
+  .footer-link:hover:visited {
+    color: #ffffff;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--brand) 70%, white);
+    transform: translateX(2px);
+  }
+}

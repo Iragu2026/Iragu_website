@@ -1,0 +1,8 @@
+@reference "tailwindcss";
+
+@layer components {
+  .featureTitle {
+    font-family: "Cormorant Garamond", serif;
+  }
+}
+

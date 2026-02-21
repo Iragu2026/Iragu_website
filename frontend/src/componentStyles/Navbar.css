@@ -1,0 +1,200 @@
+@reference "tailwindcss";
+
+/* ═══════════════════════════════════════════════
+   Nav links
+   ═══════════════════════════════════════════════ */
+@layer components {
+  .navLink {
+    @apply relative px-1 py-1.5 text-[11px] font-semibold uppercase tracking-[0.25em] transition-colors duration-200;
+    color: #4a4a4a;
+  }
+
+  .navLink::after {
+    content: "";
+    @apply absolute left-0 right-0 -bottom-1.5 h-[2px] rounded-full;
+    background: var(--brand);
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .navLink:hover {
+    color: var(--brand);
+  }
+
+  .navLink:hover::after {
+    transform: scaleX(1);
+  }
+
+  .navLink:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 35%, transparent);
+    border-radius: 6px;
+  }
+
+  .navLinkActive {
+    @apply font-bold;
+    color: var(--brand);
+  }
+
+  .navLinkActive::after {
+    transform: scaleX(1);
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   Icon buttons (search, user, cart, close)
+   ═══════════════════════════════════════════════ */
+@layer components {
+  .nav-icon-btn {
+    @apply relative inline-flex h-9 w-9 items-center justify-center rounded-full text-[#3a3a3a] transition-all duration-200;
+  }
+
+  .nav-icon-btn:hover {
+    @apply bg-black/[0.04] text-[color:var(--brand)];
+  }
+
+  .nav-icon-btn:active {
+    @apply scale-95;
+  }
+
+  .nav-icon-btn--active {
+    color: var(--brand);
+  }
+}
+
+@media (max-width: 767px) {
+  .nav-icon-btn {
+    @apply h-8 w-8;
+  }
+
+  .nav-cart-badge {
+    @apply -right-1 -top-1 h-4 min-w-4 text-[9px];
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   Cart badge
+   ═══════════════════════════════════════════════ */
+@layer components {
+  .nav-cart-badge {
+    @apply absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white;
+    background: var(--brand-ink);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    animation: badgePop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes badgePop {
+    0% { transform: scale(0); }
+    100% { transform: scale(1); }
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   User dropdown
+   ═══════════════════════════════════════════════ */
+@layer components {
+  .nav-user-dropdown {
+    @apply absolute right-0 top-full z-50 mt-2 min-w-[220px] overflow-hidden rounded-xl border border-black/[0.06] bg-white/95 shadow-xl backdrop-blur-lg;
+    animation: dropdownFadeIn 0.2s ease-out;
+  }
+
+  .nav-user-dropdown__item {
+    @apply flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#4a4a4a] transition;
+  }
+
+  .nav-user-dropdown__item:hover {
+    @apply bg-black/[0.02] text-[color:var(--brand)];
+  }
+
+  .nav-user-dropdown__item--danger:hover {
+    @apply text-red-500;
+  }
+
+  @keyframes dropdownFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-6px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   Mega dropdown animation
+   ═══════════════════════════════════════════════ */
+.mega-dropdown {
+  animation: megaFadeIn 0.2s ease-out;
+}
+
+@keyframes megaFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* For centered mega dropdowns that also translate-x */
+.mega-dropdown[class*="-translate-x-1/2"] {
+  animation: megaFadeInCentered 0.2s ease-out;
+}
+
+@keyframes megaFadeInCentered {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   Salwars two-panel hover dropdown
+   ═══════════════════════════════════════════════ */
+.salwars-dropdown-panel {
+  min-height: 180px;
+}
+
+.salwars-left-panel a {
+  white-space: nowrap;
+}
+
+.salwars-right-panel {
+  animation: salwarsSlideIn 0.15s ease-out;
+}
+
+@keyframes salwarsSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   Mobile drawer slide-in
+   ═══════════════════════════════════════════════ */
+.mobile-drawer {
+  animation: drawerSlideIn 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes drawerSlideIn {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}

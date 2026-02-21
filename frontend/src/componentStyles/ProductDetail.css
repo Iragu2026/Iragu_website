@@ -1,0 +1,25 @@
+@reference "tailwindcss";
+
+@layer components {
+  .pdp-title {
+    font-family: "Cormorant Garamond", serif;
+    @apply text-2xl font-semibold leading-snug text-[#1f1f1f];
+  }
+
+  .pdp-price {
+    font-family: "Cormorant Garamond", serif;
+    @apply text-xl text-[#6b6b6b];
+  }
+
+  .pdp-section-title {
+    font-family: "Cormorant Garamond", serif;
+    @apply text-center text-2xl font-medium italic tracking-wide;
+    color: var(--brand);
+  }
+
+  @media (min-width: 640px) {
+    .pdp-title {
+      @apply text-3xl;
+    }
+  }
+}
