@@ -84,6 +84,20 @@ const productSchema = new mongoose.Schema({
         // Blouses/Salwars: ["XS", "S", "M", "L", "XL", "2XL"]
         // Sarees: leave empty (no sizes for sarees)
     },
+    sizePieces: [
+        {
+            size: {
+                type: String,
+                required: true,
+                trim: true,
+            },
+            pieces: {
+                type: Number,
+                default: 0,
+                min: 0,
+            },
+        },
+    ],
     colors: [
         {
             name: { type: String, required: true },   // e.g. "Red"
@@ -136,6 +150,10 @@ const productSchema = new mongoose.Schema({
         type: String,
         default: "",
         // e.g. "Ships within 3-5 business days"
+    },
+    disclaimer: {
+        type: String,
+        default: "",
     },
 
     // ── Stock ──

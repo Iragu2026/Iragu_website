@@ -6,6 +6,10 @@ import handleAsyncError from "../middleware/handleAsyncError.js";
 import HandleError from "../utils/handleError.js";
 import { validateAndNormalizeAddressFromPinCode } from "../utils/indiaPincode.js";
 import { queueAdminOrderNotification } from "../utils/orderNotification.js";
+import {
+    releaseInventoryForOrderItems,
+    reserveInventoryForOrderItems,
+} from "../utils/inventory.js";
 
 const SHIPPING_FLAT = 100;
 const GIFT_WRAP_FLAT = 50;
@@ -51,7 +55,7 @@ const buildOrderFromItems = async (rawOrderItems = [], options = {}) => {
     ];
 
     const products = await Product.find({ _id: { $in: productIds } })
-        .select("name price stock images sizes colors colorImages");
+        .select("name price stock images sizes sizePieces colors colorImages");
     const productMap = new Map(products.map((product) => [String(product._id), product]));
 
     const normalizedOrderItems = rawOrderItems.map((item) => {
@@ -79,18 +83,43 @@ const buildOrderFromItems = async (rawOrderItems = [], options = {}) => {
                 .map((size) => String(size || "").trim())
                 .filter(Boolean)
             : [];
+        const availableSizePieces = Array.isArray(product.sizePieces)
+            ? product.sizePieces
+                .map((entry) => String(entry?.size || "").trim())
+                .filter(Boolean)
+            : [];
+        const selectableSizes = availableSizes.length > 0
+            ? availableSizes
+            : availableSizePieces;
         let normalizedSize = "";
-        if (availableSizes.length > 0) {
+        if (selectableSizes.length > 0) {
             if (!requestedSize) {
                 throw new HandleError(`Please select size for ${product.name}`, 400);
             }
-            const matchedSize = availableSizes.find(
+            const matchedSize = selectableSizes.find(
                 (size) => size.toLowerCase() === requestedSize.toLowerCase()
             );
             if (!matchedSize) {
                 throw new HandleError(`Invalid size selected for ${product.name}`, 400);
             }
             normalizedSize = matchedSize;
+
+            const sizePiecesEntry = Array.isArray(product.sizePieces)
+                ? product.sizePieces.find(
+                    (entry) =>
+                        String(entry?.size || "").trim().toLowerCase() ===
+                        matchedSize.toLowerCase()
+                )
+                : null;
+            if (
+                sizePiecesEntry &&
+                quantity > Number(sizePiecesEntry.pieces || 0)
+            ) {
+                throw new HandleError(
+                    `Insufficient stock for size ${matchedSize} in ${product.name}`,
+                    400
+                );
+            }
         } else if (requestedSize) {
             normalizedSize = requestedSize;
         }
@@ -281,27 +310,36 @@ export const verifyRazorpayPaymentAndCreateOrder = handleAsyncError(async (req, 
         ? `Razorpay (${String(paymentDetails.method).toUpperCase()})`
         : "Razorpay";
 
-    const order = await Order.create({
-        shippingInfo: normalizedShippingInfo,
-        billingType,
-        billingInfo: finalBillingInfo,
-        orderItems: normalizedOrderItems,
-        paymentInfo: {
-            id: finalRazorpayPaymentId,
-            status: "paid",
-            provider: "razorpay",
-            method: paymentMethod,
-            razorpayOrderId: finalRazorpayOrderId,
-            razorpaySignature: finalRazorpaySignature,
-        },
-        itemsPrice: pricing.itemsPrice,
-        shippingPrice: pricing.shippingPrice,
-        giftWrapPrice: pricing.giftWrapPrice,
-        totalPrice: pricing.totalPrice,
-        paidAt: Date.now(),
-        user: req.user._id,
-        orderStatus: "Processing",
-    });
+    const reservedOrderItems = await reserveInventoryForOrderItems(normalizedOrderItems);
+
+    let order;
+    try {
+        order = await Order.create({
+            shippingInfo: normalizedShippingInfo,
+            billingType,
+            billingInfo: finalBillingInfo,
+            orderItems: reservedOrderItems,
+            paymentInfo: {
+                id: finalRazorpayPaymentId,
+                status: "paid",
+                provider: "razorpay",
+                method: paymentMethod,
+                razorpayOrderId: finalRazorpayOrderId,
+                razorpaySignature: finalRazorpaySignature,
+            },
+            itemsPrice: pricing.itemsPrice,
+            shippingPrice: pricing.shippingPrice,
+            giftWrapPrice: pricing.giftWrapPrice,
+            totalPrice: pricing.totalPrice,
+            paidAt: Date.now(),
+            user: req.user._id,
+            orderStatus: "Processing",
+            inventoryReserved: true,
+        });
+    } catch (error) {
+        await releaseInventoryForOrderItems(reservedOrderItems);
+        throw error;
+    }
 
     res.status(201).json({
         success: true,

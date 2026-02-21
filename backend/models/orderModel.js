@@ -154,6 +154,10 @@ const orderSchema = new mongoose.Schema({
         required: true,
         default: 0,
     },
+    inventoryReserved: {
+        type: Boolean,
+        default: false,
+    },
     deliveredAt: Date,
     createdAt: {
         type: Date,

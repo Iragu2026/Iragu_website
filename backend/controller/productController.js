@@ -69,6 +69,50 @@ const normalizeOccasions = (value) => {
         .filter(Boolean);
 };
 
+const normalizeSizes = (value) => {
+    const unique = new Map();
+    toArray(value)
+        .map((size) => String(size || "").trim())
+        .filter(Boolean)
+        .forEach((size) => {
+            unique.set(size.toLowerCase(), size);
+        });
+    return Array.from(unique.values());
+};
+
+const normalizeSizePieces = (value) => {
+    const unique = new Map();
+    toArray(value).forEach((entry) => {
+        const size = String(entry?.size || "").trim();
+        const pieces = Number(entry?.pieces);
+        if (!size || !Number.isFinite(pieces)) return;
+        unique.set(size.toLowerCase(), {
+            size,
+            pieces: Math.max(0, Math.floor(pieces)),
+        });
+    });
+    return Array.from(unique.values());
+};
+
+const syncSizesAndPieces = ({ sizes, sizePieces }) => {
+    const normalizedSizes = normalizeSizes(sizes);
+    const normalizedPieces = normalizeSizePieces(sizePieces);
+    const sourceSizes = normalizedSizes.length
+        ? normalizedSizes
+        : normalizedPieces.map((entry) => entry.size);
+    const piecesBySizeKey = new Map(
+        normalizedPieces.map((entry) => [entry.size.toLowerCase(), entry.pieces])
+    );
+    const syncedPieces = sourceSizes.map((size) => ({
+        size,
+        pieces: Math.max(0, Math.floor(Number(piecesBySizeKey.get(size.toLowerCase()) || 0))),
+    }));
+    return {
+        sizes: sourceSizes,
+        sizePieces: syncedPieces,
+    };
+};
+
 const normalizeColorImages = (value) => {
     return toArray(value)
         .map((entry) => ({
@@ -124,6 +168,15 @@ export const createProducts = handleAsyncError(async (req, res, next) => {
     if (hasOwn(req.body, "colors")) {
         req.body.colors = normalizeColors(req.body.colors);
     }
+    if (hasOwn(req.body, "sizes")) {
+        req.body.sizes = normalizeSizes(req.body.sizes);
+    }
+    if (hasOwn(req.body, "sizePieces")) {
+        req.body.sizePieces = normalizeSizePieces(req.body.sizePieces);
+    }
+    if (hasOwn(req.body, "disclaimer")) {
+        req.body.disclaimer = String(req.body.disclaimer || "").trim();
+    }
     if (hasOwn(req.body, "images")) {
         req.body.images = normalizeImageEntries(req.body.images);
     }
@@ -131,6 +184,14 @@ export const createProducts = handleAsyncError(async (req, res, next) => {
         req.body.colorImages = normalizeColorImages(req.body.colorImages);
         req.body.images = flattenColorImages(req.body.colorImages);
         req.body.colors = mergeColorsFromColorImages(req.body.colors, req.body.colorImages);
+    }
+    if (hasOwn(req.body, "sizes") || hasOwn(req.body, "sizePieces")) {
+        const synced = syncSizesAndPieces({
+            sizes: req.body.sizes,
+            sizePieces: req.body.sizePieces,
+        });
+        req.body.sizes = synced.sizes;
+        req.body.sizePieces = synced.sizePieces;
     }
     req.body.user = req.user._id;
     const product = await Product.create(req.body);
@@ -230,6 +291,15 @@ export const updateProduct = handleAsyncError(async (req, res, next) => {
     if (hasOwn(req.body, "colors")) {
         req.body.colors = normalizeColors(req.body.colors);
     }
+    if (hasOwn(req.body, "sizes")) {
+        req.body.sizes = normalizeSizes(req.body.sizes);
+    }
+    if (hasOwn(req.body, "sizePieces")) {
+        req.body.sizePieces = normalizeSizePieces(req.body.sizePieces);
+    }
+    if (hasOwn(req.body, "disclaimer")) {
+        req.body.disclaimer = String(req.body.disclaimer || "").trim();
+    }
     if (hasOwn(req.body, "images")) {
         req.body.images = normalizeImageEntries(req.body.images);
     }
@@ -237,6 +307,14 @@ export const updateProduct = handleAsyncError(async (req, res, next) => {
         req.body.colorImages = normalizeColorImages(req.body.colorImages);
         req.body.images = flattenColorImages(req.body.colorImages);
         req.body.colors = mergeColorsFromColorImages(req.body.colors, req.body.colorImages);
+    }
+    if (hasOwn(req.body, "sizes") || hasOwn(req.body, "sizePieces")) {
+        const synced = syncSizesAndPieces({
+            sizes: req.body.sizes,
+            sizePieces: req.body.sizePieces,
+        });
+        req.body.sizes = synced.sizes;
+        req.body.sizePieces = synced.sizePieces;
     }
     const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
         new: true,

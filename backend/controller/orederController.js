@@ -1,9 +1,12 @@
 import Order from "../models/orderModel.js";
 import handleAsyncError from "../middleware/handleAsyncError.js";
 import HandleError from "../utils/handleError.js";
-import Product from "../models/productModel.js";
 import { validateAndNormalizeAddressFromPinCode } from "../utils/indiaPincode.js";
 import { queueAdminOrderNotification } from "../utils/orderNotification.js";
+import {
+    releaseInventoryForOrderItems,
+    reserveInventoryForOrderItems,
+} from "../utils/inventory.js";
 
 // 1. Creating an Order
 export const createNewOrder = handleAsyncError(async (req, res, next) => {
@@ -37,19 +40,28 @@ export const createNewOrder = handleAsyncError(async (req, res, next) => {
         status: paymentInfo?.status || "processing",
     };
 
-    const order = await Order.create({
-        shippingInfo: normalizedShippingInfo,
-        billingType: billingType || "same",
-        billingInfo: normalizedBillingInfo,
-        orderItems,
-        paymentInfo: safePaymentInfo,
-        itemsPrice,
-        shippingPrice,
-        totalPrice,
-        paidAt: Date.now(),
-        user: req.user._id,
-        orderStatus: "Processing",
-    });
+    const reservedOrderItems = await reserveInventoryForOrderItems(orderItems);
+
+    let order;
+    try {
+        order = await Order.create({
+            shippingInfo: normalizedShippingInfo,
+            billingType: billingType || "same",
+            billingInfo: normalizedBillingInfo,
+            orderItems: reservedOrderItems,
+            paymentInfo: safePaymentInfo,
+            itemsPrice,
+            shippingPrice,
+            totalPrice,
+            paidAt: Date.now(),
+            user: req.user._id,
+            orderStatus: "Processing",
+            inventoryReserved: true,
+        });
+    } catch (error) {
+        await releaseInventoryForOrderItems(reservedOrderItems);
+        throw error;
+    }
 
     res.status(201).json({
         success: true,
@@ -135,21 +147,27 @@ export const updateOrderStatus = handleAsyncError(async (req, res, next) => {
     }
 
     const normalizedNextStatus = nextStatus.toLowerCase();
+    const normalizedCurrentStatus = String(order.orderStatus || "").toLowerCase();
     const allowedStatuses = ["processing", "shipped", "delivered", "cancelled"];
     if (!allowedStatuses.includes(normalizedNextStatus)) {
         return next(new HandleError("Invalid order status", 400));
     }
 
-    const shouldDeductStock =
-        normalizedNextStatus === "delivered" &&
-        String(order.orderStatus || "").toLowerCase() !== "delivered";
+    if (
+        normalizedCurrentStatus === "cancelled" &&
+        normalizedNextStatus !== "cancelled"
+    ) {
+        return next(new HandleError("Cancelled order status cannot be changed", 400));
+    }
 
-    if (shouldDeductStock) {
-        await Promise.all(
-            order.orderItems.map(async (orderItem) =>
-                updateQuantity(orderItem.product, orderItem.quantity)
-            )
-        );
+    const shouldReleaseInventory =
+        normalizedNextStatus === "cancelled" &&
+        normalizedCurrentStatus !== "cancelled" &&
+        Boolean(order.inventoryReserved);
+
+    if (shouldReleaseInventory) {
+        await releaseInventoryForOrderItems(order.orderItems);
+        order.inventoryReserved = false;
     }
 
     order.orderStatus = nextStatus;
@@ -163,15 +181,6 @@ export const updateOrderStatus = handleAsyncError(async (req, res, next) => {
         order: order
     });
 });
-
-async function updateQuantity(productId, quantity) {
-    const product = await Product.findById(productId);
-    if(!product) {
-        throw new HandleError("Product not found", 404);
-    }
-    product.stock = Math.max(0, Number(product.stock || 0) - Number(quantity || 0));
-    await product.save({validateBeforeSave: false});
-}
 
 // 6. Delete Order
 export const deleteOrder = handleAsyncError(async (req, res, next) => {

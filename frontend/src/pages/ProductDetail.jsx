@@ -61,10 +61,48 @@ export default function ProductDetail() {
 
   const product = apiProduct || {};
   // Sizes – only show for Salwar / products with sizes (not Saree)
+  const rawSizes = useMemo(() => {
+    const fromSizes = Array.isArray(product.sizes)
+      ? product.sizes
+          .map((size) => String(size || "").trim())
+          .filter(Boolean)
+      : [];
+    if (fromSizes.length > 0) return fromSizes;
+
+    if (Array.isArray(product.sizePieces)) {
+      return product.sizePieces
+        .map((entry) => String(entry?.size || "").trim())
+        .filter(Boolean);
+    }
+    return [];
+  }, [product.sizes, product.sizePieces]);
   const showSizes =
-    product.category && product.category !== "Saree" &&
-    product.sizes && product.sizes.length > 0;
-  const sizes = showSizes ? product.sizes : [];
+    Boolean(product.category && product.category !== "Saree") &&
+    rawSizes.length > 0;
+  const sizes = useMemo(
+    () => (showSizes ? rawSizes : []),
+    [showSizes, rawSizes]
+  );
+  const sizePiecesMap = useMemo(() => {
+    const map = {};
+    if (!Array.isArray(product.sizePieces)) return map;
+    for (const entry of product.sizePieces) {
+      const size = String(entry?.size || "").trim();
+      const pieces = Number(entry?.pieces);
+      if (!size || !Number.isFinite(pieces)) continue;
+      map[size] = Math.max(0, Math.floor(pieces));
+    }
+    return map;
+  }, [product.sizePieces]);
+  const availableSizes = useMemo(
+    () =>
+      sizes.filter((size) => {
+        const pieces = sizePiecesMap[size];
+        if (!Number.isFinite(pieces)) return true;
+        return pieces > 0;
+      }),
+    [sizes, sizePiecesMap]
+  );
 
   // Colors from API
   const colors = product.colors && product.colors.length > 0 ? product.colors : [];
@@ -158,6 +196,50 @@ export default function ProductDetail() {
   }, [id]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  const effectiveSelectedSize = useMemo(
+    () =>
+      showSizes && availableSizes.includes(selectedSize)
+        ? selectedSize
+        : "",
+    [showSizes, availableSizes, selectedSize]
+  );
+
+  const selectedSizePieces = useMemo(() => {
+    if (!effectiveSelectedSize) return null;
+    const pieces = sizePiecesMap[effectiveSelectedSize];
+    return Number.isFinite(pieces) ? pieces : null;
+  }, [effectiveSelectedSize, sizePiecesMap]);
+
+  const maxQty = useMemo(() => {
+    const globalStock = Number(product.stock || 0);
+    if (!showSizes || !effectiveSelectedSize) return Math.max(0, globalStock);
+    if (!Number.isFinite(selectedSizePieces)) return Math.max(0, globalStock);
+    return Math.max(0, Math.min(globalStock, selectedSizePieces));
+  }, [product.stock, showSizes, effectiveSelectedSize, selectedSizePieces]);
+
+  const isSoldOut = useMemo(() => {
+    const globalStock = Number(product.stock || 0);
+    if (globalStock <= 0) return true;
+    if (!showSizes) return false;
+    return availableSizes.length === 0;
+  }, [product.stock, showSizes, availableSizes]);
+
+  const clampQty = (value) => {
+    const parsed = Number(value);
+    const safeValue = Number.isFinite(parsed) ? Math.floor(parsed) : 1;
+    return Math.max(1, Math.min(safeValue, Math.max(1, maxQty)));
+  };
+
+  const safeSetQty = (updater) => {
+    setQty((prev) => {
+      const base = clampQty(prev);
+      if (typeof updater === "function") {
+        return clampQty(updater(base));
+      }
+      return clampQty(updater);
+    });
+  };
+
   const navigate = useNavigate();
 
   const handleAddToCart = () => {
@@ -165,22 +247,28 @@ export default function ProductDetail() {
       toast.error("Please choose a colour before adding to cart.");
       return;
     }
-    if (showSizes && !selectedSize) {
+    if (showSizes && !effectiveSelectedSize) {
       toast.error("Please choose a size before adding to cart.");
       return;
     }
+
+    const effectiveQty = clampQty(qty);
+    const stockForCart =
+      showSizes && effectiveSelectedSize && Number.isFinite(selectedSizePieces)
+        ? Math.max(0, selectedSizePieces)
+        : Number(product.stock || 0);
 
     const item = {
       product: product._id,
       name: product.name,
       price: product.price,
       image: images[0]?.url,
-      stock: product.stock,
-      quantity: qty,
+      stock: stockForCart,
+      quantity: effectiveQty,
       giftWrap: Boolean(giftWrap),
     };
     if (selectedColor) item.color = selectedColor;
-    if (showSizes && selectedSize) item.size = selectedSize;
+    if (showSizes && effectiveSelectedSize) item.size = effectiveSelectedSize;
     dispatch(addToCart(item));
     toast.success(`${product.name} added to cart`);
     dispatch(openCartDrawer());
@@ -191,22 +279,28 @@ export default function ProductDetail() {
       toast.error("Please choose a colour before buying now.");
       return;
     }
-    if (showSizes && !selectedSize) {
+    if (showSizes && !effectiveSelectedSize) {
       toast.error("Please choose a size before buying now.");
       return;
     }
+
+    const effectiveQty = clampQty(qty);
+    const stockForCart =
+      showSizes && effectiveSelectedSize && Number.isFinite(selectedSizePieces)
+        ? Math.max(0, selectedSizePieces)
+        : Number(product.stock || 0);
 
     const item = {
       product: product._id,
       name: product.name,
       price: product.price,
       image: images[0]?.url,
-      stock: product.stock,
-      quantity: qty,
+      stock: stockForCart,
+      quantity: effectiveQty,
       giftWrap: Boolean(giftWrap),
     };
     if (selectedColor) item.color = selectedColor;
-    if (showSizes && selectedSize) item.size = selectedSize;
+    if (showSizes && effectiveSelectedSize) item.size = effectiveSelectedSize;
     dispatch(addToCart(item));
     navigate("/checkout");
   };
@@ -291,17 +385,21 @@ export default function ProductDetail() {
 
             {/* Quantity + Stock status */}
             <div className="flex flex-wrap items-center gap-4">
-              <QuantitySelector qty={qty} setQty={setQty} max={product.stock ?? 10} />
+              <QuantitySelector
+                qty={clampQty(qty)}
+                setQty={safeSetQty}
+                max={Math.max(1, maxQty)}
+              />
 
               {/* Stock badge */}
               {product.stock != null && (
                 <div className="flex items-center gap-2">
                   <span
                     className={`inline-block h-2 w-2 rounded-full ${
-                      product.stock > 0 ? "bg-green-500" : "bg-red-500"
+                      !isSoldOut ? "bg-green-500" : "bg-red-500"
                     }`}
                   />
-                  {product.stock > 0 ? (
+                  {!isSoldOut ? (
                     <span className="text-sm font-medium text-green-700">
                       In Stock
                       <span className="ml-1 font-normal text-[#6b6b6b]">
@@ -334,21 +432,21 @@ export default function ProductDetail() {
               <button
                 type="button"
                 onClick={handleAddToCart}
-                disabled={product.stock != null && product.stock <= 0}
+                disabled={isSoldOut}
                 className={`w-full rounded border-1.5 py-3.5 text-xs font-semibold uppercase tracking-[0.25em] transition ${
-                  product.stock != null && product.stock <= 0
+                  isSoldOut
                     ? "cursor-not-allowed border-black/15 text-black/30"
                     : "border-[color:var(--brand-ink)] text-[color:var(--brand-ink)] hover:bg-[color:var(--brand-ink)] hover:text-white"
                 }`}
               >
-                {product.stock != null && product.stock <= 0 ? "Sold Out" : "Add to Cart"}
+                {isSoldOut ? "Sold Out" : "Add to Cart"}
               </button>
               <button
                 type="button"
                 onClick={handleBuyNow}
-                disabled={product.stock != null && product.stock <= 0}
+                disabled={isSoldOut}
                 className={`w-full rounded py-3.5 text-xs font-bold uppercase tracking-[0.25em] text-white transition ${
-                  product.stock != null && product.stock <= 0
+                  isSoldOut
                     ? "cursor-not-allowed opacity-40"
                     : "hover:opacity-90"
                 }`}
@@ -362,11 +460,20 @@ export default function ProductDetail() {
 
             {/* Size selector – only for products with sizes (e.g. Salwar) */}
             {showSizes && (
-              <SizeSelector
-                sizes={sizes}
-                selected={selectedSize}
-                onSelect={setSelectedSize}
-              />
+              <>
+                <SizeSelector
+                  sizes={availableSizes}
+                  selected={effectiveSelectedSize}
+                  onSelect={setSelectedSize}
+                  piecesBySize={sizePiecesMap}
+                />
+                {effectiveSelectedSize && Number.isFinite(selectedSizePieces) ? (
+                  <p className="mt-2 text-xs text-[#6b6b6b]">
+                    {effectiveSelectedSize}: {selectedSizePieces}{" "}
+                    {selectedSizePieces === 1 ? "piece" : "pieces"} available
+                  </p>
+                ) : null}
+              </>
             )}
 
             {/* Colors */}

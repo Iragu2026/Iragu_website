@@ -189,6 +189,73 @@ function buildColorImagesFromLegacy(product) {
   ].filter((entry) => entry.images.length > 0);
 }
 
+const normalizeSizeKey = (value) => String(value || "").trim().toLowerCase();
+
+function normalizeSizes(value) {
+  const unique = new Map();
+  (Array.isArray(value) ? value : [])
+    .map((size) => String(size || "").trim())
+    .filter(Boolean)
+    .forEach((size) => {
+      unique.set(normalizeSizeKey(size), size);
+    });
+  return Array.from(unique.values());
+}
+
+function normalizeSizePieces(value) {
+  const unique = new Map();
+  (Array.isArray(value) ? value : []).forEach((entry) => {
+    const size = String(entry?.size || "").trim();
+    const pieces = Number(entry?.pieces);
+    if (!size || !Number.isFinite(pieces)) return;
+    unique.set(normalizeSizeKey(size), {
+      size,
+      pieces: Math.max(0, Math.floor(pieces)),
+    });
+  });
+  return Array.from(unique.values());
+}
+
+function syncSizesAndPieces(sizes, sizePieces) {
+  const normalizedSizes = normalizeSizes(sizes);
+  const normalizedSizePieces = normalizeSizePieces(sizePieces);
+  const sourceSizes = normalizedSizes.length
+    ? normalizedSizes
+    : normalizedSizePieces.map((entry) => entry.size);
+  const piecesMap = new Map(
+    normalizedSizePieces.map((entry) => [
+      normalizeSizeKey(entry.size),
+      entry.pieces,
+    ])
+  );
+  return {
+    sizes: sourceSizes,
+    sizePieces: sourceSizes.map((size) => ({
+      size,
+      pieces: Number(piecesMap.get(normalizeSizeKey(size)) ?? 0),
+    })),
+  };
+}
+
+function getSizePiecesValue(sizePieces, size) {
+  const key = normalizeSizeKey(size);
+  const entry = (Array.isArray(sizePieces) ? sizePieces : []).find(
+    (item) => normalizeSizeKey(item?.size) === key
+  );
+  if (!entry) return "";
+  return entry.pieces ?? "";
+}
+
+function setSizePiecesValue(sizePieces, size, value) {
+  const key = normalizeSizeKey(size);
+  const nextValue = String(value ?? "");
+  const current = Array.isArray(sizePieces) ? sizePieces : [];
+  const withoutCurrent = current.filter(
+    (entry) => normalizeSizeKey(entry?.size) !== key
+  );
+  return [...withoutCurrent, { size, pieces: nextValue }];
+}
+
 function buildEmptyProduct(category) {
   return {
     category,
@@ -211,23 +278,29 @@ function buildEmptyProduct(category) {
     isFeatured: false,
     isOffer: false,
     sizes: [],
+    sizePieces: [],
     washCare: "",
     shippingInfo: "",
+    disclaimer: "",
     images: [emptyImage()],
     colors: [],
   };
 }
 
 function normalizeProductPayload(form) {
+  const normalizedCategory = String(form.category || "").trim();
+  const isSaree = normalizedCategory.toLowerCase() === "saree";
+  const isSalwar = normalizedCategory.toLowerCase() === "salwar";
+
   const occasion =
-    form.category === "Saree"
+    isSaree
       ? Array.from(
           new Set(
             (Array.isArray(form.occasionValues) ? form.occasionValues : []).filter((v) => SAREE_OCCASION_OPTIONS.includes(v)
             )
           )
         )
-      : form.category === "Salwar"
+      : isSalwar
       ? Array.from(
           new Set(
             (Array.isArray(form.occasionValues) ? form.occasionValues : []).filter((v) => SALWAR_OCCASION_OPTIONS.includes(v)
@@ -239,7 +312,12 @@ function normalizeProductPayload(form) {
           .map((s) => s.trim())
           .filter(Boolean);
 
-  const sizes = Array.isArray(form.sizes) ? form.sizes.filter(Boolean) : [];
+  const sizes = normalizeSizes(form.sizes);
+  const syncedSizesAndPieces = syncSizesAndPieces(sizes, form.sizePieces);
+  const normalizedSizes =
+    isSalwar ? syncedSizesAndPieces.sizes : sizes;
+  const normalizedSizePieces =
+    isSalwar ? syncedSizesAndPieces.sizePieces : [];
 
   const images = (form.images || [])
     .map((im, idx) => ({
@@ -266,21 +344,21 @@ function normalizeProductPayload(form) {
     return existing || { name, hex: "" };
   });
 
-  const normalizedSubCategory = form.category === "Saree"
+  const normalizedSubCategory = isSaree
       ? Array.from(
           new Set(
             parseSubCategoryList(form.subCategoryValues).filter((v) => SAREE_SUBCATEGORY_OPTIONS.includes(v)
             )
           )
         ).join(", ")
-      : form.category === "Salwar"
+      : isSalwar
       ? String(form.salwarType || form.subCategory || "").trim()
       : form.subCategory?.trim() || "";
 
   let normalizedFabric = form.fabric?.trim() || "";
   let normalizedOccasion = occasion;
 
-  if (form.category === "Salwar") {
+  if (isSalwar) {
     const selectedType = String(form.salwarType || "").trim();
     const allowed = SALWAR_OPTIONS_BY_TYPE[selectedType] || [];
     const selectedOptions = Array.from(
@@ -310,7 +388,7 @@ function normalizeProductPayload(form) {
   }
 
   return {
-    category: form.category,
+    category: normalizedCategory,
     name: form.name?.trim(),
     description: form.description?.trim(),
     price: Number(form.price),
@@ -323,9 +401,11 @@ function normalizeProductPayload(form) {
     isBestSeller: Boolean(form.isBestSeller),
     isFeatured: Boolean(form.isFeatured),
     isOffer: Boolean(form.isOffer),
-    sizes: sizes,
+    sizes: normalizedSizes,
+    sizePieces: normalizedSizePieces,
     washCare: form.washCare?.trim() || "",
     shippingInfo: form.shippingInfo?.trim() || "",
+    disclaimer: form.disclaimer?.trim() || "",
     images: flatImages.length > 0 ? flatImages : images,
     colorImages: normalizedColorImages,
     colors: mergedColors,
@@ -384,9 +464,13 @@ export default function AdminProductManager({ category, title }) {
   };
 
   const openEdit = (p) => {
+    const syncedSizesAndPieces = syncSizesAndPieces(
+      Array.isArray(p.sizes) ? p.sizes : [],
+      Array.isArray(p.sizePieces) ? p.sizePieces : []
+    );
     setEditing(p);
     setForm({
-      category: p.category,
+      category: category,
       name: p.name || "",
       description: p.description || "",
       price: String(p.price ?? ""),
@@ -414,9 +498,14 @@ export default function AdminProductManager({ category, title }) {
       isBestSeller: Boolean(p.isBestSeller),
       isFeatured: Boolean(p.isFeatured),
       isOffer: Boolean(p.isOffer),
-      sizes: Array.isArray(p.sizes) ? p.sizes : [],
+      sizes: syncedSizesAndPieces.sizes,
+      sizePieces: syncedSizesAndPieces.sizePieces.map((entry) => ({
+        size: entry.size,
+        pieces: String(entry.pieces ?? 0),
+      })),
       washCare: p.washCare || "",
       shippingInfo: p.shippingInfo || "",
+      disclaimer: p.disclaimer || "",
       images: Array.isArray(p.images) && p.images.length ? p.images : [emptyImage()],
       colors: Array.isArray(p.colors) ? p.colors : [],
     });
@@ -426,6 +515,17 @@ export default function AdminProductManager({ category, title }) {
   const closeModal = () => {
     setModalOpen(false);
     setEditing(null);
+  };
+
+  const preventNumberWheelChange = (event) => {
+    const target = event.target;
+    if (
+      target &&
+      target.tagName === "INPUT" &&
+      String(target.type || "").toLowerCase() === "number"
+    ) {
+      target.blur();
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -454,6 +554,25 @@ export default function AdminProductManager({ category, title }) {
       toast.error("Please select at least one Salwar option");
       return;
     }
+    if (category === "Salwar" && (!Array.isArray(form.sizes) || form.sizes.length === 0)) {
+      toast.error("Please select at least one size");
+      return;
+    }
+    if (category === "Salwar") {
+      const selectedSizes = normalizeSizes(form.sizes);
+      for (const size of selectedSizes) {
+        const rawPieces = getSizePiecesValue(form.sizePieces, size);
+        if (rawPieces === "" || rawPieces === null || rawPieces === undefined) {
+          toast.error(`Enter pieces available for size ${size}`);
+          return;
+        }
+        const pieces = Number(rawPieces);
+        if (!Number.isInteger(pieces) || pieces < 0) {
+          toast.error(`Pieces for size ${size} must be a non-negative whole number`);
+          return;
+        }
+      }
+    }
 
     const payload = normalizeProductPayload(form);
     if (!payload.images.length) {
@@ -473,6 +592,7 @@ export default function AdminProductManager({ category, title }) {
         await dispatch(createAdminProduct(payload)).unwrap();
         toast.success("Product created");
       }
+      await dispatch(fetchAdminProducts({ category })).unwrap();
       closeModal();
     } catch (err) {
       toast.error(err || "Failed to save product");
@@ -709,7 +829,11 @@ export default function AdminProductManager({ category, title }) {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="max-h-[78vh] overflow-y-auto">
+            <form
+              onSubmit={handleSubmit}
+              onWheelCapture={preventNumberWheelChange}
+              className="max-h-[78vh] overflow-y-auto"
+            >
               <div className="grid gap-5 p-6 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6b6b6b]">
@@ -823,14 +947,11 @@ export default function AdminProductManager({ category, title }) {
                       value={form.salwarType}
                       onChange={(e) => {
                         const nextType = e.target.value;
-                        const allowed = SALWAR_OPTIONS_BY_TYPE[nextType] || [];
                         setForm((p) => ({
                           ...p,
                           salwarType: nextType,
                           subCategory: nextType,
-                          salwarOptionValues: parseSubCategoryList(
-                            p.salwarOptionValues
-                          ).filter((v) => allowed.includes(v)),
+                          salwarOptionValues: [],
                         }));
                       }}
                       className="w-full rounded-lg border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-[color:var(--brand)]"
@@ -1023,7 +1144,25 @@ export default function AdminProductManager({ category, title }) {
                                   const next = on
                                     ? Array.from(new Set([...current, sz]))
                                     : current.filter((x) => x !== sz);
-                                  return { ...p, sizes: next };
+                                  const nextSizePieces = on
+                                    ? setSizePiecesValue(
+                                        p.sizePieces,
+                                        sz,
+                                        getSizePiecesValue(p.sizePieces, sz)
+                                      )
+                                    : (Array.isArray(p.sizePieces)
+                                        ? p.sizePieces
+                                        : []
+                                      ).filter(
+                                        (entry) =>
+                                          normalizeSizeKey(entry?.size) !==
+                                          normalizeSizeKey(sz)
+                                      );
+                                  return {
+                                    ...p,
+                                    sizes: next,
+                                    sizePieces: nextSizePieces,
+                                  };
                                 });
                               }}
                              name="checkbox-4" id="checkbox-4" aria-label="input field" />
@@ -1032,6 +1171,41 @@ export default function AdminProductManager({ category, title }) {
                         );
                       })}
                     </div>
+                    {Array.isArray(form.sizes) && form.sizes.length > 0 ? (
+                      <div className="mt-3 grid gap-3 sm:grid-cols-4">
+                        {normalizeSizes(form.sizes).map((size) => (
+                          <label
+                            key={`pieces-${size}`}
+                            className="rounded-lg border border-black/10 bg-white px-3 py-2.5"
+                          >
+                            <span className="block text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6b6b6b]">
+                              {size} pieces
+                            </span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              value={getSizePiecesValue(form.sizePieces, size)}
+                              onChange={(e) =>
+                                setForm((p) => ({
+                                  ...p,
+                                  sizePieces: setSizePiecesValue(
+                                    p.sizePieces,
+                                    size,
+                                    e.target.value
+                                  ),
+                                }))
+                              }
+                              className="mt-1 w-full rounded border border-black/10 px-2.5 py-2 text-sm outline-none transition focus:border-[color:var(--brand)]"
+                              placeholder="0"
+                              name={`pieces-${size.toLowerCase()}`}
+                              id={`pieces-${size.toLowerCase()}`}
+                              aria-label={`${size} pieces`}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
 
@@ -1082,6 +1256,25 @@ export default function AdminProductManager({ category, title }) {
                     placeholder="e.g. Ships in 2-3 business days"
                    name="e-g-ships-in-2-3-business-days" id="e-g-ships-in-2-3-business-days" aria-label="e.g. Ships in 2-3 business days" />
                 </div>
+
+                {(category === "Saree" || category === "Salwar") ? (
+                  <div className="sm:col-span-2">
+                    <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6b6b6b]">
+                      Disclaimer
+                    </label>
+                    <textarea
+                      value={form.disclaimer}
+                      onChange={(e) =>
+                        setForm((p) => ({ ...p, disclaimer: e.target.value }))
+                      }
+                      className="min-h-[90px] w-full rounded-lg border border-black/10 px-4 py-3 text-sm outline-none transition focus:border-[color:var(--brand)]"
+                      placeholder="e.g. Color may vary slightly due to studio lighting and display settings."
+                      name="product-disclaimer"
+                      id="product-disclaimer"
+                      aria-label="Product disclaimer"
+                    />
+                  </div>
+                ) : null}
 
                 <div className="sm:col-span-2">
                   <div className="flex items-center justify-between">
