@@ -12,6 +12,13 @@ import { assertStrongPassword } from "../utils/passwordPolicy.js";
 
 const normalizeEmail = (value) => String(value || "").trim().toLowerCase();
 const normalizeName = (value) => String(value || "").trim();
+const maskEmailForLogs = (email) => {
+    const value = normalizeEmail(email);
+    if (!value || !value.includes("@")) return "unknown";
+    const [name, domain] = value.split("@");
+    const visible = name.slice(0, 2);
+    return `${visible}${"*".repeat(Math.max(name.length - 2, 1))}@${domain}`;
+};
 
 export const registerUser = handleAsyncError(async (req, res, next) => {
     const name = normalizeName(req.body?.name);
@@ -92,8 +99,13 @@ export const logoutUser = handleAsyncError(async (req, res, next) => {
 export const requestPasswordReset = handleAsyncError(async (req, res, next) => {
     const email = normalizeEmail(req.body?.email);
     const genericMessage = "If an account exists for this email, reset instructions have been sent.";
+    if (!email) {
+        return next(new HandleError("Email is required", 400));
+    }
+
     const user = await User.findOne({ email });
     if(!user) {
+        console.info(`[auth] forgot-password requested for non-existing email: ${maskEmailForLogs(email)}`);
         return res.status(200).json({
             success: true,
             message: genericMessage,
@@ -105,17 +117,24 @@ export const requestPasswordReset = handleAsyncError(async (req, res, next) => {
     const resetPasswordUrl = `${frontendUrl}/password/reset/${resetToken}`;
     const message = `Use the link below to reset your password:\n\n${resetPasswordUrl}\n\nThis link is valid for only 30 minutes.\n\nIf you did not request this, please ignore this email.`;   
     try {
+        console.info(`[auth] forgot-password email sending to ${maskEmailForLogs(user.email)}`);
         await sendEmail({
             email: user.email,
             subject: "Reset Password Request",
             message: message,
         });
+        console.info(`[auth] forgot-password email sent to ${maskEmailForLogs(user.email)}`);
         res.status(200).json({
             success: true,
             message: genericMessage,
         });
     }
     catch (error) {
+        const code = error?.code ? ` code=${error.code}` : "";
+        const responseCode = error?.responseCode ? ` responseCode=${error.responseCode}` : "";
+        console.warn(
+            `[auth] forgot-password email failed for ${maskEmailForLogs(user.email)}.${code}${responseCode} message=${error?.message || "unknown"}`
+        );
         user.resetPasswordToken = undefined;
         user.resetPasswordExpire = undefined;
         await user.save({validateBeforeSave: false});

@@ -146,11 +146,16 @@ export const forgotPassword = createAsyncThunk(
   "user/forgotPassword",
   async (email, { rejectWithValue }) => {
     try {
-      const { data } = await axiosInstance.post("/api/v1/password/forgot", {
-        email,
-      });
+      const { data } = await axiosInstance.post(
+        "/api/v1/password/forgot",
+        { email },
+        { timeout: 25000 }
+      );
       return data.message;
     } catch (error) {
+      if (error?.code === "ECONNABORTED") {
+        return rejectWithValue("Request timed out. Please try again.");
+      }
       return rejectWithValue(
         error.response?.data?.message || error.message || "Failed to send reset email"
       );
