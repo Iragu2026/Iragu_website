@@ -46,6 +46,24 @@ const buildTransportConfig = () => {
     };
 };
 
+const sendMailWithHardTimeout = async (transporter, mailOptions, timeoutMs = 20000) => {
+    let timeoutId;
+    try {
+        return await Promise.race([
+            transporter.sendMail(mailOptions),
+            new Promise((_, reject) => {
+                timeoutId = setTimeout(() => {
+                    const timeoutError = new Error(`SMTP send timeout after ${timeoutMs}ms`);
+                    timeoutError.code = "SMTP_TIMEOUT";
+                    reject(timeoutError);
+                }, timeoutMs);
+            }),
+        ]);
+    } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+    }
+};
+
 // Send Email
 export const sendEmail = async (options) => {
     const to = normalizeText(options?.email);
@@ -67,7 +85,7 @@ export const sendEmail = async (options) => {
     };
 
     try {
-        await transporter.sendMail(mailOptions);
+        await sendMailWithHardTimeout(transporter, mailOptions, 20000);
     } catch (error) {
         const code = error?.code ? ` code=${error.code}` : "";
         const responseCode = error?.responseCode ? ` responseCode=${error.responseCode}` : "";
