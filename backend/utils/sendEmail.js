@@ -35,11 +35,6 @@ const buildTransportConfig = () => {
         connectionTimeout: 15000,
         greetingTimeout: 10000,
         socketTimeout: 20000,
-        family: 4,
-        lookup: (hostname, options, callback) => {
-            const cb = typeof options === "function" ? options : callback;
-            dns.lookup(hostname, { family: 4, all: false }, cb);
-        },
     };
 
     if (host) {
@@ -56,6 +51,17 @@ const buildTransportConfig = () => {
         from: user,
         transportConfig,
     };
+};
+
+const resolveIpv4Address = async (hostname) => {
+    try {
+        const { address } = await dns.promises.lookup(hostname, { family: 4, all: false });
+        return normalizeText(address);
+    } catch (error) {
+        const code = error?.code ? ` code=${error.code}` : "";
+        console.warn(`[email] IPv4 resolve failed for ${hostname}.${code} message=${error?.message || "unknown"}`);
+        return "";
+    }
 };
 
 const sendMailWithHardTimeout = async (transporter, mailOptions, timeoutMs = 20000) => {
@@ -87,6 +93,17 @@ export const sendEmail = async (options) => {
     }
 
     const { from, transportConfig } = buildTransportConfig();
+    if (transportConfig.host) {
+        const originalHost = transportConfig.host;
+        const ipv4Address = await resolveIpv4Address(originalHost);
+        if (ipv4Address) {
+            transportConfig.host = ipv4Address;
+            transportConfig.tls = {
+                ...(transportConfig.tls || {}),
+                servername: originalHost,
+            };
+        }
+    }
     const transporter = nodemailer.createTransport(transportConfig);
 
     const mailOptions = {
