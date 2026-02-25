@@ -80,6 +80,19 @@ const notifyAdminAboutExchangeRequest = async ({ exchangeRequest, order }) => {
     }
 };
 
+const queueAdminExchangeNotification = ({ exchangeRequest, order }) => {
+    if (!exchangeRequest || !order) return;
+    const orderCode = String(order?._id || "").slice(-8).toUpperCase();
+    void notifyAdminAboutExchangeRequest({ exchangeRequest, order })
+        .then(() => {
+            console.log(`Admin exchange notification sent for order #${orderCode}`);
+        })
+        .catch((error) => {
+            const errorCode = error?.code ? ` (${error.code})` : "";
+            console.warn(`Admin exchange notification failed${errorCode}:`, error?.message || error);
+        });
+};
+
 export const createExchangeRequest = handleAsyncError(async (req, res, next) => {
     const orderId = normalizeText(req.params?.orderId);
     const name = normalizeText(req.body?.name);
@@ -129,13 +142,13 @@ export const createExchangeRequest = handleAsyncError(async (req, res, next) => 
         reason,
     });
 
-    await notifyAdminAboutExchangeRequest({ exchangeRequest, order });
-
-    return res.status(201).json({
+    res.status(201).json({
         success: true,
         message: "Exchange request submitted successfully",
         exchangeRequest,
     });
+
+    queueAdminExchangeNotification({ exchangeRequest, order });
 });
 
 export const getMyExchangeByOrder = handleAsyncError(async (req, res, next) => {
@@ -211,4 +224,3 @@ export const updateExchangeRequestStatus = handleAsyncError(async (req, res, nex
         exchangeRequest: updatedRequest,
     });
 });
-
