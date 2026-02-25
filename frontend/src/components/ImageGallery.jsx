@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiChevronLeft, FiChevronRight, FiMinus, FiPlus, FiX } from "react-icons/fi";
 import { getImageUrl } from "../utils/imageHelper.js";
@@ -7,6 +7,8 @@ export default function ImageGallery({ images = [] }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const touchStartRef = useRef({ x: 0, y: 0 });
+  const suppressTapRef = useRef(false);
 
   // Ensure every image has a valid url
   const safeImages = useMemo(
@@ -58,6 +60,30 @@ export default function ImageGallery({ images = [] }) {
 
   const goPrev = () => setActiveIdx((prev) => (prev - 1 + safeImages.length) % safeImages.length);
   const goNext = () => setActiveIdx((prev) => (prev + 1) % safeImages.length);
+
+  const handleTouchStart = (event) => {
+    const touch = event.touches?.[0];
+    if (!touch) return;
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+    suppressTapRef.current = false;
+  };
+
+  const handleTouchEnd = (event) => {
+    if (safeImages.length <= 1) return;
+    const touch = event.changedTouches?.[0];
+    if (!touch) return;
+
+    const dx = touch.clientX - touchStartRef.current.x;
+    const dy = touch.clientY - touchStartRef.current.y;
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+
+    if (absX >= 40 && absX > absY) {
+      suppressTapRef.current = true;
+      if (dx < 0) goNext();
+      else goPrev();
+    }
+  };
 
   if (!safeImages.length) return null;
 
@@ -196,7 +222,15 @@ export default function ImageGallery({ images = [] }) {
         {/* Main image */}
         <button
           type="button"
-          onClick={openLightbox}
+          onClick={() => {
+            if (suppressTapRef.current) {
+              suppressTapRef.current = false;
+              return;
+            }
+            openLightbox();
+          }}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
           className="group relative flex-1 overflow-hidden rounded bg-white text-left"
           aria-label="Open product image in full screen"
         >
@@ -208,6 +242,11 @@ export default function ImageGallery({ images = [] }) {
           <span className="pointer-events-none absolute bottom-3 right-3 rounded bg-black/60 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-white">
             Click to zoom
           </span>
+          {safeImages.length > 1 ? (
+            <span className="pointer-events-none absolute bottom-3 left-3 rounded bg-black/60 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-white sm:hidden">
+              Swipe
+            </span>
+          ) : null}
         </button>
       </div>
 
