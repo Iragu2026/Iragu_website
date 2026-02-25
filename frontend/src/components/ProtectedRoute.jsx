@@ -8,11 +8,11 @@ import { Navigate, useLocation } from "react-router-dom";
  * If adminOnly is true, also checks user.role === "admin".
  */
 export default function ProtectedRoute({ children, adminOnly = false }) {
-  const { isAuthenticated, loading, user } = useSelector((s) => s.user);
+  const { isAuthenticated, loading, user, authChecked } = useSelector((s) => s.user);
   const location = useLocation();
 
-  // While loading auth state, show nothing (prevents flash)
-  if (loading) return null;
+  // Wait for initial session bootstrap before deciding redirects.
+  if (!authChecked || loading) return null;
 
   if (!isAuthenticated) {
     const redirectTo = location.pathname === "/" ? "" : location.pathname.slice(1);

@@ -198,6 +198,7 @@ const userSlice = createSlice({
     user: null,
     isAuthenticated: false,
     loading: false,
+    authChecked: false,
     error: null,
     registerSuccess: false,
     profileUpdating: false,
@@ -238,12 +239,14 @@ const userSlice = createSlice({
       state.loading = false;
       state.user = action.payload;
       state.isAuthenticated = true;
+      state.authChecked = true;
     };
     const authRejected = (state, action) => {
       state.loading = false;
       state.error = action.payload;
       state.isAuthenticated = false;
       state.user = null;
+      state.authChecked = true;
     };
 
     builder
@@ -274,6 +277,7 @@ const userSlice = createSlice({
         state.loading = false;
         state.isAuthenticated = false;
         state.user = null;
+        state.authChecked = true;
       })
       .addCase(checkUserSession.pending, (state) => {
         state.loading = true;
@@ -282,17 +286,20 @@ const userSlice = createSlice({
         state.loading = false;
         state.user = action.payload;
         state.isAuthenticated = Boolean(action.payload);
+        state.authChecked = true;
       })
       .addCase(checkUserSession.rejected, (state) => {
         state.loading = false;
         state.isAuthenticated = false;
         state.user = null;
+        state.authChecked = true;
       })
       // logout
       .addCase(logoutUser.fulfilled, (state) => {
         state.loading = false;
         state.user = null;
         state.isAuthenticated = false;
+        state.authChecked = true;
       })
       .addCase(logoutUser.rejected, (state, action) => {
         state.loading = false;

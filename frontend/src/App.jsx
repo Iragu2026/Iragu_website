@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
 import SiteLayout from "./components/SiteLayout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import Home from "./pages/Home.jsx";
@@ -25,8 +26,15 @@ import AdminProductsSalwars from "./pages/admin/AdminProductsSalwars.jsx";
 import AdminUsers from "./pages/admin/AdminUsers.jsx";
 import AdminOrders from "./pages/admin/AdminOrders.jsx";
 import AdminExchanges from "./pages/admin/AdminExchanges.jsx";
+import { checkUserSession } from "./features/user/userSlice.js";
 
 function App() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(checkUserSession());
+  }, [dispatch]);
+
   return (
     <Router>
       <Routes>

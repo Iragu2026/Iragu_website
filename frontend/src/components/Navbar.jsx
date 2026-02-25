@@ -14,7 +14,7 @@ import {
   FiHeart,
 } from "react-icons/fi";
 import toast from "react-hot-toast";
-import { checkUserSession, logoutUser } from "../features/user/userSlice.js";
+import { logoutUser } from "../features/user/userSlice.js";
 import { openCartDrawer, fetchCart } from "../features/cart/cartSlice.js";
 import SearchOverlay from "./SearchOverlay.jsx";
 import { getAvatarUrl } from "../utils/avatarHelper.js";
@@ -157,11 +157,6 @@ export default function Navbar() {
   const avatarUrl = getAvatarUrl(user);
   const { cartItems } = useSelector((s) => s.cart);
   const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
-
-  // Load user session on first mount
-  useEffect(() => {
-    dispatch(checkUserSession());
-  }, [dispatch]);
 
   // When authenticated, load cart
   useEffect(() => {
