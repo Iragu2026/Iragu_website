@@ -2,6 +2,7 @@ import crypto from "crypto";
 import Razorpay from "razorpay";
 import Order from "../models/orderModel.js";
 import Product from "../models/productModel.js";
+import RazorpayWebhookEvent from "../models/razorpayWebhookEventModel.js";
 import handleAsyncError from "../middleware/handleAsyncError.js";
 import HandleError from "../utils/handleError.js";
 import { validateAndNormalizeAddressFromPinCode } from "../utils/indiaPincode.js";
@@ -205,6 +206,198 @@ const validateShippingInfo = (shippingInfo = {}) => {
 };
 
 const createReceipt = (userId) => `rcpt_${String(userId).slice(-6)}_${Date.now()}`.slice(0, 40);
+
+const getWebhookBodyString = (req) => {
+    if (Buffer.isBuffer(req.body)) {
+        return req.body.toString("utf8");
+    }
+    if (typeof req.body === "string") {
+        return req.body;
+    }
+    return "";
+};
+
+const extractWebhookEntity = (payload, key) => payload?.payload?.[key]?.entity || null;
+
+const buildWebhookDedupeKey = ({ payloadString, payload }) => {
+    const payloadEventId = String(payload?.id || "").trim();
+    if (payloadEventId) return `event:${payloadEventId}`;
+    return `hash:${crypto.createHash("sha256").update(payloadString).digest("hex")}`;
+};
+
+const findOrderByPaymentContext = async ({ paymentId, razorpayOrderId }) => {
+    const normalizedPaymentId = String(paymentId || "").trim();
+    const normalizedRazorpayOrderId = String(razorpayOrderId || "").trim();
+
+    if (normalizedPaymentId) {
+        const orderByPayment = await Order.findOne({ "paymentInfo.id": normalizedPaymentId });
+        if (orderByPayment) return orderByPayment;
+    }
+    if (normalizedRazorpayOrderId) {
+        const orderByRazorpayOrderId = await Order.findOne({
+            "paymentInfo.razorpayOrderId": normalizedRazorpayOrderId,
+        });
+        if (orderByRazorpayOrderId) return orderByRazorpayOrderId;
+    }
+    return null;
+};
+
+export const razorpayWebhookHandler = handleAsyncError(async (req, res, next) => {
+    const webhookSecret = String(process.env.RAZORPAY_WEBHOOK_SECRET || "").trim();
+    if (!webhookSecret) {
+        return next(new HandleError("Razorpay webhook secret is not configured", 500));
+    }
+
+    const signature = String(req.headers["x-razorpay-signature"] || "").trim();
+    if (!signature) {
+        return next(new HandleError("Missing Razorpay webhook signature", 400));
+    }
+
+    const payloadString = getWebhookBodyString(req);
+    if (!payloadString) {
+        return next(new HandleError("Invalid webhook payload", 400));
+    }
+
+    const expectedSignature = crypto
+        .createHmac("sha256", webhookSecret)
+        .update(payloadString)
+        .digest("hex");
+
+    if (expectedSignature !== signature) {
+        return next(new HandleError("Invalid webhook signature", 400));
+    }
+
+    let payload;
+    try {
+        payload = JSON.parse(payloadString);
+    } catch (error) {
+        return next(new HandleError("Webhook payload must be valid JSON", 400));
+    }
+
+    const eventType = String(payload?.event || "").trim();
+    if (!eventType) {
+        return next(new HandleError("Webhook event type is missing", 400));
+    }
+
+    const paymentEntity =
+        extractWebhookEntity(payload, "payment") ||
+        extractWebhookEntity(payload, "order") ||
+        extractWebhookEntity(payload, "refund");
+    const paymentId = String(
+        paymentEntity?.id || paymentEntity?.payment_id || ""
+    ).trim();
+    const razorpayOrderId = String(
+        paymentEntity?.order_id || paymentEntity?.id || ""
+    ).trim();
+
+    const dedupeKey = buildWebhookDedupeKey({ payloadString, payload });
+
+    try {
+        await RazorpayWebhookEvent.create({
+            dedupeKey,
+            eventType,
+            paymentId,
+            razorpayOrderId,
+            status: "processed",
+        });
+    } catch (error) {
+        if (error?.code === 11000) {
+            return res.status(200).json({ success: true, duplicate: true });
+        }
+        throw error;
+    }
+
+    let note = "Event acknowledged without action";
+    let status = "ignored";
+
+    try {
+        if (eventType === "payment.captured" || eventType === "order.paid") {
+            const order = await findOrderByPaymentContext({
+                paymentId,
+                razorpayOrderId,
+            });
+            if (order) {
+                order.paymentInfo.status = "paid";
+                if (paymentId) {
+                    order.paymentInfo.id = paymentId;
+                }
+                if (razorpayOrderId && !order.paymentInfo.razorpayOrderId) {
+                    order.paymentInfo.razorpayOrderId = razorpayOrderId;
+                }
+                await order.save({ validateBeforeSave: false });
+                note = "Order marked as paid";
+                status = "processed";
+            } else {
+                note = "No matching order found for captured payment";
+            }
+        } else if (eventType === "payment.failed") {
+            const order = await findOrderByPaymentContext({
+                paymentId,
+                razorpayOrderId,
+            });
+            if (order) {
+                const currentPaymentStatus = String(order.paymentInfo?.status || "").toLowerCase();
+                if (currentPaymentStatus !== "paid") {
+                    order.paymentInfo.status = "failed";
+                }
+                const currentOrderStatus = String(order.orderStatus || "").toLowerCase();
+                if (order.inventoryReserved && !["delivered", "cancelled"].includes(currentOrderStatus)) {
+                    await releaseInventoryForOrderItems(order.orderItems);
+                    order.inventoryReserved = false;
+                    order.orderStatus = "Cancelled";
+                }
+                await order.save({ validateBeforeSave: false });
+                note = "Failed payment handled";
+                status = "processed";
+            } else {
+                note = "No matching order found for failed payment";
+            }
+        } else if (eventType === "refund.created" || eventType === "refund.processed") {
+            const refundEntity = extractWebhookEntity(payload, "refund");
+            const refundPaymentId = String(refundEntity?.payment_id || paymentId || "").trim();
+            const order = await findOrderByPaymentContext({ paymentId: refundPaymentId });
+            if (order) {
+                if (eventType === "refund.processed") {
+                    order.paymentInfo.status = "refunded";
+                } else if (String(order.paymentInfo?.status || "").toLowerCase() !== "refunded") {
+                    order.paymentInfo.status = "refund_initiated";
+                }
+                await order.save({ validateBeforeSave: false });
+                note = `${eventType} mapped to order`;
+                status = "processed";
+            } else {
+                note = "No matching order found for refund event";
+            }
+        } else {
+            note = `Unhandled event type: ${eventType}`;
+        }
+    } catch (error) {
+        await RazorpayWebhookEvent.updateOne(
+            { dedupeKey },
+            {
+                $set: {
+                    status: "failed",
+                    note: error.message,
+                    processedAt: new Date(),
+                },
+            }
+        );
+        throw error;
+    }
+
+    await RazorpayWebhookEvent.updateOne(
+        { dedupeKey },
+        {
+            $set: {
+                status,
+                note,
+                processedAt: new Date(),
+            },
+        }
+    );
+
+    return res.status(200).json({ success: true });
+});
 
 export const createRazorpayOrder = handleAsyncError(async (req, res, next) => {
     const razorpay = getRazorpayClient();

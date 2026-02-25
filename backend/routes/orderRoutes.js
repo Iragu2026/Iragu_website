@@ -1,6 +1,6 @@
 import express from "express";
 import { createNewOrder, getSingleOrder, getMySingleOrder, getAllMyOrders, getAllOrders, updateOrderStatus, deleteOrder } from "../controller/orederController.js";
-import { createRazorpayOrder, verifyRazorpayPaymentAndCreateOrder } from "../controller/paymentController.js";
+import { createRazorpayOrder, razorpayWebhookHandler, verifyRazorpayPaymentAndCreateOrder } from "../controller/paymentController.js";
 import {
     createExchangeRequest,
     getAllExchangeRequests,
@@ -12,6 +12,8 @@ import { verifyUserAuth, roleBasedAccess } from "../middleware/userAuth.js";
 
 const router = express.Router();
 
+router.route("/payment/razorpay/webhook").post(razorpayWebhookHandler);
+router.route("/payments/razorpay/webhook").post(razorpayWebhookHandler);
 router.route("/new/order").post(verifyUserAuth, createNewOrder);
 router.route("/payment/razorpay/order").post(verifyUserAuth, createRazorpayOrder);
 router.route("/payment/razorpay/verify").post(verifyUserAuth, verifyRazorpayPaymentAndCreateOrder);
