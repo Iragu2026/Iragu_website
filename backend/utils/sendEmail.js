@@ -1,9 +1,16 @@
 import nodemailer from "nodemailer";
+import dns from "node:dns";
 import dotenv from "dotenv";
 dotenv.config();
 
 const normalizeText = (value) => String(value || "").trim();
 const toBool = (value) => /^(1|true|yes)$/i.test(String(value || "").trim());
+
+try {
+    dns.setDefaultResultOrder("ipv4first");
+} catch {
+    // Ignore if runtime does not support this API.
+}
 
 const buildTransportConfig = () => {
     const service = normalizeText(process.env.SMTP_SERVICE).toLowerCase();
@@ -28,6 +35,11 @@ const buildTransportConfig = () => {
         connectionTimeout: 15000,
         greetingTimeout: 10000,
         socketTimeout: 20000,
+        family: 4,
+        lookup: (hostname, options, callback) => {
+            const cb = typeof options === "function" ? options : callback;
+            dns.lookup(hostname, { family: 4, all: false }, cb);
+        },
     };
 
     if (host) {
