@@ -76,10 +76,10 @@ export default function ReviewSection({
   return (
     <section className="py-10">
       {/* Rating summary */}
-      <div className="flex flex-col items-start gap-8 border-b border-black/10 pb-8 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col items-center gap-8 border-b border-black/10 pb-8 md:flex-row md:items-center md:justify-between">
         {/* Left: overall */}
-        <div className="flex items-center gap-4">
-          <div>
+        <div className="flex w-full items-center justify-center gap-4 md:w-auto md:justify-start">
+          <div className="text-center md:text-left">
             <StarRating rating={ratings} size={18} />
             <div className="mt-1 text-sm text-[#6b6b6b]">
               {ratings.toFixed(2)} out of 5
