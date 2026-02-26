@@ -98,8 +98,8 @@ export default function AdminExchanges() {
         </div>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-lg border border-black/10">
-        <div className="grid grid-cols-[1fr_1.1fr_0.8fr_1.6fr_1fr_0.9fr_100px] gap-4 bg-black/[0.03] px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">
+      <div className="mt-5 overflow-x-auto rounded-lg border border-black/10">
+        <div className="grid min-w-[900px] grid-cols-[1fr_1.1fr_0.8fr_1.6fr_1fr_0.9fr_100px] gap-4 bg-black/[0.03] px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">
           <div>Request</div>
           <div>Customer</div>
           <div>Mobile</div>
@@ -120,7 +120,7 @@ export default function AdminExchanges() {
             {filteredRequests.map((request) => (
               <div
                 key={request._id}
-                className="grid grid-cols-[1fr_1.1fr_0.8fr_1.6fr_1fr_0.9fr_100px] items-center gap-4 px-5 py-4"
+                className="grid min-w-[900px] grid-cols-[1fr_1.1fr_0.8fr_1.6fr_1fr_0.9fr_100px] items-center gap-4 px-5 py-4"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-[#1f1f1f]">
@@ -252,4 +252,3 @@ export default function AdminExchanges() {
     </div>
   );
 }
-

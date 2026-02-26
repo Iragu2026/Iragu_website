@@ -141,8 +141,8 @@ export default function AdminOrders() {
         </div>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-lg border border-black/10">
-        <div className="grid grid-cols-[1fr_1.2fr_0.7fr_0.9fr_0.9fr_0.9fr_120px] gap-4 bg-black/[0.03] px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">
+      <div className="mt-5 overflow-x-auto rounded-lg border border-black/10">
+        <div className="grid min-w-[920px] grid-cols-[1fr_1.2fr_0.7fr_0.9fr_0.9fr_0.9fr_120px] gap-4 bg-black/[0.03] px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">
           <div>Order</div>
           <div>User</div>
           <div className="text-right">Total</div>
@@ -163,7 +163,7 @@ export default function AdminOrders() {
             {filtered.map((o) => (
               <div
                 key={o._id}
-                className="grid grid-cols-[1fr_1.2fr_0.7fr_0.9fr_0.9fr_0.9fr_120px] items-center gap-4 px-5 py-4"
+                className="grid min-w-[920px] grid-cols-[1fr_1.2fr_0.7fr_0.9fr_0.9fr_0.9fr_120px] items-center gap-4 px-5 py-4"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-[#1f1f1f]">

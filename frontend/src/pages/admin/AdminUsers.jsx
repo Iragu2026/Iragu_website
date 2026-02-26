@@ -70,8 +70,8 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-lg border border-black/10">
-        <div className="grid grid-cols-[1.2fr_1.4fr_0.8fr_0.8fr] gap-4 bg-black/[0.03] px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">
+      <div className="mt-5 overflow-x-auto rounded-lg border border-black/10">
+        <div className="grid min-w-[700px] grid-cols-[1.2fr_1.4fr_0.8fr_0.8fr] gap-4 bg-black/[0.03] px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">
           <div>Name</div>
           <div>Email</div>
           <div>Role</div>
@@ -89,7 +89,7 @@ export default function AdminUsers() {
             {filtered.map((u) => (
               <div
                 key={u._id}
-                className="grid grid-cols-[1.2fr_1.4fr_0.8fr_0.8fr] items-center gap-4 px-5 py-4"
+                className="grid min-w-[700px] grid-cols-[1.2fr_1.4fr_0.8fr_0.8fr] items-center gap-4 px-5 py-4"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-semibold text-[#1f1f1f]">

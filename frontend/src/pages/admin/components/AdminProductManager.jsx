@@ -726,8 +726,8 @@ export default function AdminProductManager({ category, title }) {
         </div>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-lg border border-black/10">
-        <div className="grid grid-cols-[64px_1.3fr_1fr_0.7fr_0.8fr_120px] gap-4 bg-black/[0.03] px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">
+      <div className="mt-5 overflow-x-auto rounded-lg border border-black/10">
+        <div className="grid min-w-[820px] grid-cols-[64px_1.3fr_1fr_0.7fr_0.8fr_120px] gap-4 bg-black/[0.03] px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#6b6b6b]">
           <div>Image</div>
           <div>Name</div>
           <div>Fabric / Subcategory</div>
@@ -747,7 +747,7 @@ export default function AdminProductManager({ category, title }) {
             {filtered.map((p) => (
               <div
                 key={p._id}
-                className="grid grid-cols-[64px_1.3fr_1fr_0.7fr_0.8fr_120px] items-center gap-4 px-5 py-4"
+                className="grid min-w-[820px] grid-cols-[64px_1.3fr_1fr_0.7fr_0.8fr_120px] items-center gap-4 px-5 py-4"
               >
                 <div className="h-12 w-12 overflow-hidden rounded-md border border-black/10 bg-[#fbf7f0]">
                   <img
