@@ -15,16 +15,17 @@ export default function SizeSelector({
         {sizes.map((s) => {
           const pieces = Number(piecesBySize?.[s]);
           const hasPieceCount = Number.isFinite(pieces);
-          const isDisabled = hasPieceCount && pieces <= 0;
+          const isOutOfStock = hasPieceCount && pieces <= 0;
+
           return (
             <button
               key={s}
               type="button"
               onClick={() => onSelect(s)}
-              disabled={isDisabled}
+              disabled={isOutOfStock}
               className={[
-                "flex min-w-[64px] flex-col items-center justify-center rounded border px-3 py-2 text-xs font-semibold tracking-wide transition",
-                isDisabled
+                "relative flex min-w-[64px] items-center justify-center overflow-hidden rounded border px-3 py-2.5 text-xs font-semibold tracking-wide transition",
+                isOutOfStock
                   ? "cursor-not-allowed border-black/10 text-black/25"
                   : selected === s
                   ? "border-[color:var(--brand-ink)] bg-[color:var(--brand-ink)] text-white"
@@ -32,11 +33,14 @@ export default function SizeSelector({
               ].join(" ")}
             >
               <span>{s}</span>
-              {hasPieceCount ? (
-                <span className="mt-0.5 text-[10px] font-medium opacity-85">
-                  {pieces} left
+              {isOutOfStock && (
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 flex items-center justify-center"
+                >
+                  <span className="block h-[1.5px] w-[140%] -rotate-[25deg] bg-black/30" />
                 </span>
-              ) : null}
+              )}
             </button>
           );
         })}

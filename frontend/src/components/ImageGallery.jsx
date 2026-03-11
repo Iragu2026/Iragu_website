@@ -1,198 +1,209 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { FiChevronLeft, FiChevronRight, FiMinus, FiPlus, FiX } from "react-icons/fi";
+import { FiChevronLeft, FiChevronRight, FiX, FiZoomIn } from "react-icons/fi";
 import { getImageUrl } from "../utils/imageHelper.js";
 
 export default function ImageGallery({ images = [] }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const imgElRef = useRef(null);
+  const zoomAreaRef = useRef(null);
   const touchStartRef = useRef({ x: 0, y: 0 });
   const suppressTapRef = useRef(false);
+  const lbTouchStartRef = useRef({ x: 0, y: 0 });
 
-  // Ensure every image has a valid url
   const safeImages = useMemo(
-    () => images.map((img) => ({
-        ...img,
-        url: getImageUrl(img.url),
-      })),
+    () => images.map((img) => ({ ...img, url: getImageUrl(img.url) })),
     [images]
   );
 
   const activeImageIndex =
-    safeImages.length > 0
-      ? Math.min(activeIdx, safeImages.length - 1)
-      : 0;
+    safeImages.length > 0 ? Math.min(activeIdx, safeImages.length - 1) : 0;
   const active = safeImages[activeImageIndex] || safeImages[0];
 
-  useEffect(() => {
-    if (!lightboxOpen) return undefined;
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") setLightboxOpen(false);
-      if (e.key === "ArrowRight") setActiveIdx((prev) => (prev + 1) % safeImages.length);
-      if (e.key === "ArrowLeft") {
-        setActiveIdx((prev) => (prev - 1 + safeImages.length) % safeImages.length);
-      }
-      if (e.key === "+" || e.key === "=") setZoom((z) => Math.min(3, Number((z + 0.25).toFixed(2))));
-      if (e.key === "-") setZoom((z) => Math.max(1, Number((z - 0.25).toFixed(2))));
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [lightboxOpen, safeImages.length]);
+  const resetZoom = () => {
+    setZoom(1);
+    if (imgElRef.current) imgElRef.current.style.transformOrigin = "50% 50%";
+  };
+
+  const goPrev = useCallback(() => {
+    resetZoom();
+    setActiveIdx((p) => (p - 1 + safeImages.length) % safeImages.length);
+  }, [safeImages.length]);
+
+  const goNext = useCallback(() => {
+    resetZoom();
+    setActiveIdx((p) => (p + 1) % safeImages.length);
+  }, [safeImages.length]);
 
   const openLightbox = () => {
-    setZoom(1);
+    resetZoom();
     setLightboxOpen(true);
   };
 
-  const closeLightbox = () => {
+  const closeLightbox = useCallback(() => {
     setLightboxOpen(false);
-    setZoom(1);
-  };
+    resetZoom();
+  }, []);
 
-  const zoomIn = () => setZoom((z) => Math.min(3, Number((z + 0.25).toFixed(2))));
-  const zoomOut = () => setZoom((z) => Math.max(1, Number((z - 0.25).toFixed(2))));
+  /* ── Keyboard ── */
+  useEffect(() => {
+    if (!lightboxOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") closeLightbox();
+      if (e.key === "ArrowRight") goNext();
+      if (e.key === "ArrowLeft") goPrev();
+    };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [lightboxOpen, closeLightbox, goNext, goPrev]);
 
-  const goPrev = () => setActiveIdx((prev) => (prev - 1 + safeImages.length) % safeImages.length);
-  const goNext = () => setActiveIdx((prev) => (prev + 1) % safeImages.length);
+  /* ── Non-passive wheel listener (needed to preventDefault) ── */
+  useEffect(() => {
+    const el = zoomAreaRef.current;
+    if (!lightboxOpen || !el) return undefined;
 
-  const handleTouchStart = (event) => {
-    const touch = event.touches?.[0];
-    if (!touch) return;
-    touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+    const onWheel = (e) => {
+      e.preventDefault();
+      const step = e.ctrlKey
+        ? (e.deltaY < 0 ? 0.08 : -0.08)
+        : (e.deltaY < 0 ? 0.3 : -0.3);
+      setZoom((z) => Math.max(1, Math.min(5, Number((z + step).toFixed(2)))));
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [lightboxOpen]);
+
+  /* ── Pan: update transform-origin via ref (no re-render) ── */
+  const handleMouseMove = useCallback((e) => {
+    if (!zoomAreaRef.current || !imgElRef.current) return;
+    const rect = zoomAreaRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    imgElRef.current.style.transformOrigin = `${x}% ${y}%`;
+  }, []);
+
+  /* ── Click to toggle zoom ── */
+  const handleImageClick = useCallback(() => {
+    setZoom((z) => (z > 1 ? 1 : 2.5));
+  }, []);
+
+  /* ── Gallery swipe (main page) ── */
+  const handleTouchStart = (e) => {
+    const t = e.touches?.[0];
+    if (!t) return;
+    touchStartRef.current = { x: t.clientX, y: t.clientY };
     suppressTapRef.current = false;
   };
 
-  const handleTouchEnd = (event) => {
+  const handleTouchEnd = (e) => {
     if (safeImages.length <= 1) return;
-    const touch = event.changedTouches?.[0];
-    if (!touch) return;
-
-    const dx = touch.clientX - touchStartRef.current.x;
-    const dy = touch.clientY - touchStartRef.current.y;
-    const absX = Math.abs(dx);
-    const absY = Math.abs(dy);
-
-    if (absX >= 40 && absX > absY) {
+    const t = e.changedTouches?.[0];
+    if (!t) return;
+    const dx = t.clientX - touchStartRef.current.x;
+    if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(t.clientY - touchStartRef.current.y)) {
       suppressTapRef.current = true;
-      if (dx < 0) goNext();
-      else goPrev();
+      dx < 0 ? goNext() : goPrev();
+    }
+  };
+
+  /* ── Lightbox swipe (touch navigation) ── */
+  const handleLbTouchStart = (e) => {
+    const t = e.touches?.[0];
+    if (t) lbTouchStartRef.current = { x: t.clientX, y: t.clientY };
+  };
+
+  const handleLbTouchEnd = (e) => {
+    if (safeImages.length <= 1) return;
+    const t = e.changedTouches?.[0];
+    if (!t) return;
+    const dx = t.clientX - lbTouchStartRef.current.x;
+    if (Math.abs(dx) >= 50 && Math.abs(dx) > Math.abs(t.clientY - lbTouchStartRef.current.y)) {
+      dx < 0 ? goNext() : goPrev();
     }
   };
 
   if (!safeImages.length) return null;
 
+  /* ─────────────── Lightbox ─────────────── */
   const lightbox = lightboxOpen ? (
-    <div className="fixed inset-0 z-[200]" role="dialog" aria-modal="true">
-      <div className="absolute inset-0 bg-black/55 backdrop-blur-[2px]" onClick={closeLightbox} />
+    <div className="fixed inset-0 z-[200] flex flex-col" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-black/85" onClick={closeLightbox} />
 
+      {/* Zoom area */}
       <div
-        className="relative mx-auto my-2 flex h-[calc(100dvh-1rem)] w-[min(1200px,96vw)] flex-col overflow-hidden rounded-xl border border-white/15 bg-[#0f1115] shadow-[0_20px_60px_rgba(0,0,0,0.45)] sm:my-4 sm:h-[calc(100dvh-2rem)] sm:rounded-2xl"
-        onClick={(e) => e.stopPropagation()}
+        ref={zoomAreaRef}
+        className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden"
+        onMouseMove={handleMouseMove}
+        onTouchStart={handleLbTouchStart}
+        onTouchEnd={handleLbTouchEnd}
+        onClick={handleImageClick}
+        style={{ cursor: zoom > 1 ? "crosshair" : "zoom-in" }}
       >
-        <div className="flex items-center justify-between border-b border-white/10 px-3 py-2.5 text-white sm:px-4 sm:py-3">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/80">
-            Product Preview
-          </p>
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <button
-              type="button"
-              onClick={zoomOut}
-              className="rounded-full bg-white/10 p-1.5 transition hover:bg-white/20"
-              aria-label="Zoom out"
-            >
-              <FiMinus size={15} />
-            </button>
-            <span className="min-w-11 text-center text-xs font-semibold">
-              {Math.round(zoom * 100)}%
-            </span>
-            <button
-              type="button"
-              onClick={zoomIn}
-              className="rounded-full bg-white/10 p-1.5 transition hover:bg-white/20"
-              aria-label="Zoom in"
-            >
-              <FiPlus size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={closeLightbox}
-              className="ml-0.5 rounded-full bg-white/10 p-1.5 transition hover:bg-white/20"
-              aria-label="Close image viewer"
-            >
-              <FiX size={16} />
-            </button>
-          </div>
-        </div>
-
-        <div
-          className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.12),rgba(255,255,255,0)_55%)] p-3 sm:p-6"
-          onWheel={(e) => {
-            e.stopPropagation();
-            if (e.deltaY < 0) zoomIn();
-            else zoomOut();
+        <img
+          ref={imgElRef}
+          src={active.url}
+          alt="Product enlarged"
+          className="max-h-full max-w-full select-none object-contain"
+          style={{
+            transform: `scale(${zoom})`,
+            transformOrigin: "50% 50%",
+            transition: "transform 0.25s ease-out",
           }}
-        >
-          {safeImages.length > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={goPrev}
-                className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/15 p-2 text-white transition hover:bg-white/25 sm:left-4"
-                aria-label="Previous image"
-              >
-                <FiChevronLeft size={22} />
-              </button>
-              <button
-                type="button"
-                onClick={goNext}
-                className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/15 p-2 text-white transition hover:bg-white/25 sm:right-4"
-                aria-label="Next image"
-              >
-                <FiChevronRight size={22} />
-              </button>
-            </>
-          )}
-          <img
-            src={active.url}
-            alt="Product enlarged"
-            className="max-h-full max-w-full rounded-md object-contain transition-transform duration-150"
-            style={{ transform: `scale(${zoom})` }}
-          />
-        </div>
+          draggable={false}
+        />
 
-        {safeImages.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto border-t border-white/10 bg-black/20 px-3 py-2 sm:px-4 sm:py-3">
-            {safeImages.map((img, i) => (
-              <button
-                key={img._id || i}
-                type="button"
-                onClick={() => setActiveIdx(i)}
-                className={[
-                  "h-12 w-12 flex-shrink-0 overflow-hidden rounded border-2 transition sm:h-14 sm:w-14",
-                  i === activeImageIndex
-                    ? "border-white"
-                    : "border-white/20 opacity-75 hover:opacity-100",
-                ].join(" ")}
-              >
-                <img
-                  src={img.url}
-                  alt={`Preview ${i + 1}`}
-                  className="h-full w-full object-cover"
-                />
-              </button>
-            ))}
+        {/* Zoom hint */}
+        {zoom === 1 && (
+          <div className="pointer-events-none absolute bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-[11px] font-medium text-white/80 backdrop-blur-sm">
+            <FiZoomIn size={13} />
+            Scroll or click to zoom
           </div>
+        )}
+      </div>
+
+      {/* Bottom controls */}
+      <div className="relative z-10 flex items-center justify-center gap-5 pb-5 pt-2">
+        {safeImages.length > 1 && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); goPrev(); }}
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg transition hover:scale-105 active:scale-95"
+            aria-label="Previous image"
+          >
+            <FiChevronLeft size={20} className="text-gray-700" />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); closeLightbox(); }}
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg transition hover:scale-105 active:scale-95"
+          aria-label="Close preview"
+        >
+          <FiX size={20} className="text-gray-700" />
+        </button>
+        {safeImages.length > 1 && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); goNext(); }}
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg transition hover:scale-105 active:scale-95"
+            aria-label="Next image"
+          >
+            <FiChevronRight size={20} className="text-gray-700" />
+          </button>
         )}
       </div>
     </div>
   ) : null;
 
+  /* ─────────────── Gallery (product page) ─────────────── */
   return (
     <>
       <div className="flex flex-col-reverse gap-4 sm:flex-row">

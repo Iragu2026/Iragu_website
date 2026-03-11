@@ -81,7 +81,7 @@ const productSchema = new mongoose.Schema({
     sizes: {
         type: [String],
         default: [],
-        // Blouses/Salwars: ["XS", "S", "M", "L", "XL", "2XL"]
+        // Blouses/Salwars: ["XS", "S", "M", "L", "XL", ..., "10XL"]
         // Sarees: leave empty (no sizes for sarees)
     },
     sizePieces: [

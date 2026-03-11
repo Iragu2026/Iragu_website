@@ -144,7 +144,7 @@ export default function Footer() {
           <div className="md:col-span-3">
             <h4 className="footer-heading">About Us</h4>
             <p className="mt-5 text-[13px] leading-relaxed text-white/60">
-              Iragu For Her is an online platform helping you celebrate the touch
+              Iragu For Her is a clothing store helping you celebrate the touch
               of intricate handloom collection. The collections are handpicked,
               curated and come in a host of patterns, hues and fine fabric.
             </p>
@@ -165,7 +165,7 @@ export default function Footer() {
                   iraguforher.com
                 </a>
               </li>
-              <li className="flex items-start gap-3">
+              <li className="flex items-start gbap-3">
                 <FiPhone className="mt-0.5 shrink-0 text-[color:var(--brand)]" size={15} />
                 <a
                   href="tel:+919042991048"
@@ -176,11 +176,16 @@ export default function Footer() {
               </li>
               <li className="flex items-start gap-3">
                 <FiMapPin className="mt-0.5 shrink-0 text-[color:var(--brand)]" size={15} />
-                <span className="text-[13px] leading-relaxed text-white/60">
+                <a
+                  href="https://share.google/FqxWUljRhGfwke36w"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[13px] leading-relaxed text-white/60 visited:text-white/60 transition hover:text-white visited:hover:text-white"
+                >
                   No. 78/53, ECR Road, Near SBI Bank,
                   <br />
                   Thiruvanmiyur, Chennai&#8209;600041.
-                </span>
+                </a>
               </li>
             </ul>
           </div>

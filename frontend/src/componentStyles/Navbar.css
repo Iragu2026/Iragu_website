@@ -188,9 +188,7 @@
    ═══════════════════════════════════════════════ */
 .mobile-drawer {
   animation: drawerSlideIn 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes drawerSlideIn {
+}@keyframes drawerSlideIn {
   from {
     transform: translateX(-100%);
   }

@@ -460,20 +460,12 @@ export default function ProductDetail() {
 
             {/* Size selector – only for products with sizes (e.g. Salwar) */}
             {showSizes && (
-              <>
-                <SizeSelector
-                  sizes={availableSizes}
-                  selected={effectiveSelectedSize}
-                  onSelect={setSelectedSize}
-                  piecesBySize={sizePiecesMap}
-                />
-                {effectiveSelectedSize && Number.isFinite(selectedSizePieces) ? (
-                  <p className="mt-2 text-xs text-[#6b6b6b]">
-                    {effectiveSelectedSize}: {selectedSizePieces}{" "}
-                    {selectedSizePieces === 1 ? "piece" : "pieces"} available
-                  </p>
-                ) : null}
-              </>
+              <SizeSelector
+                sizes={sizes}
+                selected={effectiveSelectedSize}
+                onSelect={setSelectedSize}
+                piecesBySize={sizePiecesMap}
+              />
             )}
 
             {/* Colors */}
@@ -489,27 +481,30 @@ export default function ProductDetail() {
                     {selectedColor ? selectedColor : "Required"}
                   </span>
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {displayColors.map((c, i) => (
                     <button
                       key={i}
                       type="button"
                       onClick={() => setSelectedColor(c.name)}
-                      className={`group flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs transition ${
+                      title={c.name}
+                      className={`group flex min-h-[54px] items-start justify-between gap-2 rounded-lg border px-3 py-2.5 text-left text-xs transition ${
                         selectedColor === c.name
                           ? "border-[color:var(--brand-ink)] bg-[color:var(--brand-ink)]/8 text-[color:var(--brand-ink)] shadow-sm"
                           : "border-black/10 bg-white text-[#4a4a4a] hover:border-[color:var(--brand)] hover:bg-black/[0.02]"
                       }`}
                     >
-                      <span className="flex min-w-0 items-center gap-2">
+                      <span className="flex min-w-0 items-start gap-2">
                         <span
-                          className="inline-block h-4 w-4 rounded-full border border-black/15 shadow-inner"
+                          className="mt-0.5 inline-block h-4 w-4 shrink-0 rounded-full border border-black/15 shadow-inner"
                           style={{ backgroundColor: c.hex || "#d9d9d9" }}
                         />
-                        <span className="truncate">{c.name}</span>
+                        <span className="whitespace-normal break-words text-sm leading-snug">
+                          {c.name}
+                        </span>
                       </span>
                       {selectedColor === c.name ? (
-                        <FiCheck size={14} className="shrink-0" />
+                        <FiCheck size={14} className="mt-0.5 shrink-0" />
                       ) : null}
                     </button>
                   ))}
@@ -521,36 +516,39 @@ export default function ProductDetail() {
             <div className="mt-6">
               {product.category === "Saree" ? (
                 <>
-                  <h3 className="text-sm font-bold text-[#1f1f1f]">
-                    Saree Description
-                  </h3>
-                  {(product.fabric || product.length) && (
-                    <div className="mt-2 space-y-2 rounded-lg border border-black/10 bg-black/[0.02] p-4">
-                      {product.fabric && (
-                        <div className="flex items-start justify-between gap-4">
-                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b6b6b]">
-                            Fabric
-                          </p>
-                          <p className="text-sm text-[#1f1f1f] text-right">
-                            {product.fabric}
-                          </p>
+                  <Accordion
+                    icon={<FiCheck size={18} />}
+                    title="Saree Description"
+                    defaultOpen
+                  >
+                    <div className="space-y-3">
+                      {(product.fabric || product.length) && (
+                        <div className="space-y-3">
+                          {product.fabric && (
+                            <div className="grid grid-cols-[104px_1fr] items-start gap-4">
+                              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b6b6b]">
+                                Fabric
+                              </p>
+                              <p className="text-sm text-[#1f1f1f]">
+                                {product.fabric}
+                              </p>
+                            </div>
+                          )}
+                          {product.length && (
+                            <div className="grid grid-cols-[104px_1fr] items-start gap-4">
+                              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b6b6b]">
+                                Length
+                              </p>
+                              <p className="text-sm text-[#1f1f1f]">
+                                {product.length}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
-                      {product.length && (
-                        <div className="flex items-start justify-between gap-4">
-                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b6b6b]">
-                            Length
-                          </p>
-                          <p className="text-sm text-[#1f1f1f] text-right">
-                            {product.length}
-                          </p>
-                        </div>
-                      )}
+                      <p>{product.description}</p>
                     </div>
-                  )}
-                  <p className="mt-3 text-sm text-[#6b6b6b]">
-                    {product.description}
-                  </p>
+                  </Accordion>
                 </>
               ) : (
                 <>

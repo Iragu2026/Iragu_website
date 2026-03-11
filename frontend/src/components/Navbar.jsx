@@ -225,7 +225,7 @@ export default function Navbar() {
     >
       {/* ═══ Top bar: hamburger · logo · icons ═══ */}
       <div className="border-b border-black/[0.04]">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2.5 sm:px-6">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-1 sm:px-6 sm:py-1.5">
           {/* Left: mobile hamburger / desktop spacer */}
           <div className="flex w-24 items-center md:hidden">
             <IconBtn label="Open menu" onClick={() => setMobileOpen(true)}>
@@ -236,11 +236,11 @@ export default function Navbar() {
 
           {/* Center: logo */}
           <NavLink to="/" className="flex shrink-0 items-center justify-center">
-            <div className="h-10 w-36 overflow-hidden sm:h-14 sm:w-56 md:h-16 md:w-64">
+            <div className="flex h-12 w-52 items-center justify-center overflow-hidden sm:h-14 sm:w-64 md:h-16 md:w-80 lg:h-[4.5rem] lg:w-96">
               <img
                 src="/images/logo.png"
                 alt="Iragu For Her"
-                className="h-auto w-full -mt-[22%] object-contain"
+                className="block h-full w-full -translate-y-[5%] scale-[1.9] object-contain sm:scale-[1.95] lg:scale-[2]"
                 loading="eager"
               />
             </div>
@@ -346,7 +346,7 @@ export default function Navbar() {
       {/* ═══ Desktop navigation row ═══ */}
       <nav className="relative hidden md:block">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <ul className="flex items-center justify-center gap-9 py-3">
+          <ul className="flex items-center justify-center gap-9 py-2">
             {navItems.map((item) => (
               <li
                 key={item.to}
@@ -546,7 +546,7 @@ export default function Navbar() {
                 <img
                   src="/images/logo.png"
                   alt="Iragu For Her"
-                  className="h-9 w-auto"
+                  className="h-11 w-auto"
                 />
               </Link>
               <button

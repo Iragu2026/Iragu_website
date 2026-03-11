@@ -122,23 +122,6 @@ const normalizeColorImages = (value) => {
         .filter((entry) => Boolean(entry.colorName) && entry.images.length > 0);
 };
 
-const mergeColorsFromColorImages = (colors, colorImages) => {
-    const map = new Map();
-    (Array.isArray(colors) ? colors : []).forEach((c) => {
-        if (!c?.name) return;
-        map.set(c.name.toLowerCase(), { name: c.name, hex: c.hex || "" });
-    });
-    (Array.isArray(colorImages) ? colorImages : []).forEach((ci) => {
-        const name = String(ci?.colorName || "").trim();
-        if (!name) return;
-        const key = name.toLowerCase();
-        if (!map.has(key)) {
-            map.set(key, { name, hex: "" });
-        }
-    });
-    return Array.from(map.values());
-};
-
 const flattenColorImages = (colorImages) =>
     (Array.isArray(colorImages) ? colorImages : [])
         .flatMap((ci) => (Array.isArray(ci.images) ? ci.images : []))
@@ -183,7 +166,6 @@ export const createProducts = handleAsyncError(async (req, res, next) => {
     if (hasOwn(req.body, "colorImages")) {
         req.body.colorImages = normalizeColorImages(req.body.colorImages);
         req.body.images = flattenColorImages(req.body.colorImages);
-        req.body.colors = mergeColorsFromColorImages(req.body.colors, req.body.colorImages);
     }
     if (hasOwn(req.body, "sizes") || hasOwn(req.body, "sizePieces")) {
         const synced = syncSizesAndPieces({
@@ -306,7 +288,6 @@ export const updateProduct = handleAsyncError(async (req, res, next) => {
     if (hasOwn(req.body, "colorImages")) {
         req.body.colorImages = normalizeColorImages(req.body.colorImages);
         req.body.images = flattenColorImages(req.body.colorImages);
-        req.body.colors = mergeColorsFromColorImages(req.body.colors, req.body.colorImages);
     }
     if (hasOwn(req.body, "sizes") || hasOwn(req.body, "sizePieces")) {
         const synced = syncSizesAndPieces({

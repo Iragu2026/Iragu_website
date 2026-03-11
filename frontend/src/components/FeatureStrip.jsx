@@ -7,8 +7,8 @@ const features = [
   {
     id: "f-1",
     icon: <FiStar size={24} />,
-    title: "Boutique Exclusives",
-    text: "Pieces you won't find elsewhere. Limited runs, singular style.",
+    title: "Store Exclusives",
+    text: "Limited runs, singular style.",
   },
   {
     id: "f-2",
@@ -26,7 +26,7 @@ const features = [
     id: "f-4",
     icon: <FiPackage size={24} />,
     title: "Effortlessly Yours",
-    text: "From our boutique to your door. Smooth, simple, satisfying.",
+    text: "From our store to your door. Smooth, simple, satisfying.",
   },
   {
     id: "f-5",

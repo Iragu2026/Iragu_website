@@ -11,7 +11,22 @@ import {
   updateAdminProduct,
 } from "../../../features/admin/adminProductsSlice.js";
 
-const SALWAR_SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"];
+const SALWAR_SIZES = [
+  "XS",
+  "S",
+  "M",
+  "L",
+  "XL",
+  "2XL",
+  "3XL",
+  "4XL",
+  "5XL",
+  "6XL",
+  "7XL",
+  "8XL",
+  "9XL",
+  "10XL",
+];
 const SAREE_SUBCATEGORY_OPTIONS = [
   "Kalamkari",
   "Chettinad",
@@ -121,6 +136,27 @@ function findColourDefinition(rawName) {
   const found = COLOUR_OPTION_BY_KEY.get(key);
   if (found) return found;
   return { name: String(rawName || "").trim(), hex: "" };
+}
+
+function normalizeColors(value) {
+  const map = new Map();
+  (Array.isArray(value) ? value : []).forEach((item) => {
+    const rawName = String(item?.name || "").trim();
+    if (!rawName) return;
+    const key = normalizeColourName(rawName);
+    if (!key) return;
+    const preferred = COLOUR_OPTION_BY_KEY.get(key);
+    const hex = String(item?.hex || "").trim() || preferred?.hex || "";
+    if (!map.has(key)) {
+      map.set(key, { name: preferred?.name || rawName, hex });
+      return;
+    }
+    const current = map.get(key);
+    if (!current.hex && hex) {
+      current.hex = hex;
+    }
+  });
+  return Array.from(map.values());
 }
 
 const emptyImage = () => ({
@@ -328,21 +364,10 @@ function normalizeProductPayload(form) {
     }))
     .filter((im) => Boolean(im.url));
 
-  const colors = (form.colors || [])
-    .map((c) => ({ name: c.name?.trim(), hex: c.hex?.trim() || "" }))
-    .filter((c) => Boolean(c.name));
+  const colors = normalizeColors(form.colors);
 
   const normalizedColorImages = normalizeColorImages(form.colorImages);
   const flatImages = flattenColorImages(normalizedColorImages);
-  const mergedColors = Array.from(
-    new Set([
-      ...colors.map((c) => c.name),
-      ...normalizedColorImages.map((c) => c.colorName),
-    ])
-  ).map((name) => {
-    const existing = colors.find((c) => c.name === name);
-    return existing || { name, hex: "" };
-  });
 
   const normalizedSubCategory = isSaree
       ? Array.from(
@@ -408,7 +433,7 @@ function normalizeProductPayload(form) {
     disclaimer: form.disclaimer?.trim() || "",
     images: flatImages.length > 0 ? flatImages : images,
     colorImages: normalizedColorImages,
-    colors: mergedColors,
+    colors,
   };
 }
 
@@ -427,6 +452,7 @@ export default function AdminProductManager({ category, title }) {
   const [editing, setEditing] = useState(null); // product object or null
   const [form, setForm] = useState(() => buildEmptyProduct(category));
   const [uploadColourOpen, setUploadColourOpen] = useState(false);
+  const [newColorName, setNewColorName] = useState("");
 
   useEffect(() => {
     dispatch(fetchAdminProducts({ category }));
@@ -460,10 +486,22 @@ export default function AdminProductManager({ category, title }) {
   const openCreate = () => {
     setEditing(null);
     setForm(buildEmptyProduct(category));
+    setNewColorName("");
     setModalOpen(true);
   };
 
   const openEdit = (p) => {
+    const normalizedColorImages = buildColorImagesFromLegacy(p);
+    const explicitColors = normalizeColors(Array.isArray(p.colors) ? p.colors : []);
+    const normalizedColors =
+      explicitColors.length > 0
+        ? explicitColors
+        : normalizeColors(
+            normalizedColorImages.map((entry) => ({
+              name: entry.colorName,
+              hex: findColourDefinition(entry.colorName)?.hex || "",
+            }))
+          );
     const syncedSizesAndPieces = syncSizesAndPieces(
       Array.isArray(p.sizes) ? p.sizes : [],
       Array.isArray(p.sizePieces) ? p.sizePieces : []
@@ -487,9 +525,8 @@ export default function AdminProductManager({ category, title }) {
           ? p.occasion.filter((v) => v === "Festive Wear")
           : []),
       ],
-      colorImages: buildColorImagesFromLegacy(p),
-      selectedUploadColor:
-        (Array.isArray(p.colors) ? p.colors : []).find((c) => c?.name)?.name || "",
+      colorImages: normalizedColorImages,
+      selectedUploadColor: normalizedColors.find((c) => c?.name)?.name || "",
       fabric: p.fabric || "",
       length: p.length || "",
       occasionCsv: Array.isArray(p.occasion) ? p.occasion.join(", ") : "",
@@ -507,14 +544,16 @@ export default function AdminProductManager({ category, title }) {
       shippingInfo: p.shippingInfo || "",
       disclaimer: p.disclaimer || "",
       images: Array.isArray(p.images) && p.images.length ? p.images : [emptyImage()],
-      colors: Array.isArray(p.colors) ? p.colors : [],
+      colors: normalizedColors,
     });
+    setNewColorName("");
     setModalOpen(true);
   };
 
   const closeModal = () => {
     setModalOpen(false);
     setEditing(null);
+    setNewColorName("");
   };
 
   const preventNumberWheelChange = (event) => {
@@ -664,18 +703,50 @@ export default function AdminProductManager({ category, title }) {
         )
         .filter((entry) => entry.images.length > 0);
 
-      const activeColourKeys = new Set(
-        nextColorImages.map((entry) => normalizeColourName(entry.colorName))
-      );
-
       return {
         ...prev,
         colorImages: nextColorImages,
-        colors: (prev.colors || []).filter((c) => activeColourKeys.has(normalizeColourName(c.name))
-        ),
-        selectedUploadColor: activeColourKeys.has(normalizeColourName(prev.selectedUploadColor))
-          ? prev.selectedUploadColor
-          : "",
+      };
+    });
+  };
+
+  const addColor = () => {
+    const selected = findColourDefinition(newColorName);
+    const colorName = String(selected?.name || newColorName || "").trim();
+    if (!colorName) return;
+    setForm((prev) => {
+      const current = normalizeColors(prev.colors);
+      const exists = current.some(
+        (entry) => normalizeColourName(entry.name) === normalizeColourName(colorName)
+      );
+      if (exists) return prev;
+      return {
+        ...prev,
+        colors: [...current, { name: colorName, hex: selected?.hex || "" }],
+      };
+    });
+    setNewColorName("");
+  };
+
+  const updateColorAt = (index, updates) => {
+    setForm((prev) => {
+      const current = Array.isArray(prev.colors) ? [...prev.colors] : [];
+      if (index < 0 || index >= current.length) return prev;
+      const existing = current[index] || {};
+      current[index] = {
+        ...existing,
+        ...updates,
+      };
+      return { ...prev, colors: current };
+    });
+  };
+
+  const removeColorAt = (index) => {
+    setForm((prev) => {
+      const current = Array.isArray(prev.colors) ? prev.colors : [];
+      return {
+        ...prev,
+        colors: current.filter((_, idx) => idx !== index),
       };
     });
   };
@@ -1277,6 +1348,89 @@ export default function AdminProductManager({ category, title }) {
                 ) : null}
 
                 <div className="sm:col-span-2">
+                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6b6b6b]">
+                    Colours
+                  </label>
+                  <div className="space-y-3 rounded-lg border border-black/10 p-3">
+                    <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                      <input
+                        value={newColorName}
+                        onChange={(e) => setNewColorName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addColor();
+                          }
+                        }}
+                        list="admin-colour-options"
+                        className="w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[color:var(--brand)]"
+                        placeholder="Add colour name (e.g. Peach)"
+                        name="add-colour-name"
+                        id="add-colour-name"
+                        aria-label="Add colour name"
+                      />
+                      <button
+                        type="button"
+                        onClick={addColor}
+                        className="rounded border border-black/10 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#4a4a4a] transition hover:bg-black/[0.03]"
+                      >
+                        Add
+                      </button>
+                    </div>
+                    <datalist id="admin-colour-options">
+                      {COLOUR_OPTIONS.map((opt) => (
+                        <option key={opt.name} value={opt.name} />
+                      ))}
+                    </datalist>
+                    {Array.isArray(form.colors) && form.colors.length > 0 ? (
+                      <div className="space-y-2">
+                        {form.colors.map((color, idx) => (
+                          <div
+                            key={`colour-${idx}`}
+                            className="grid gap-2 sm:grid-cols-[1fr_160px_auto]"
+                          >
+                            <input
+                              value={color?.name || ""}
+                              onChange={(e) =>
+                                updateColorAt(idx, { name: e.target.value })
+                              }
+                              className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm outline-none transition focus:border-[color:var(--brand)]"
+                              placeholder="Colour name"
+                              name={`colour-name-${idx}`}
+                              id={`colour-name-${idx}`}
+                              aria-label={`Colour name ${idx + 1}`}
+                            />
+                            <input
+                              value={color?.hex || ""}
+                              onChange={(e) =>
+                                updateColorAt(idx, { hex: e.target.value })
+                              }
+                              className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm outline-none transition focus:border-[color:var(--brand)]"
+                              placeholder="#RRGGBB"
+                              name={`colour-hex-${idx}`}
+                              id={`colour-hex-${idx}`}
+                              aria-label={`Colour hex ${idx + 1}`}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeColorAt(idx)}
+                              className="inline-flex items-center justify-center rounded-md border border-black/10 bg-white px-3 text-[#4a4a4a] transition hover:bg-black/[0.03]"
+                              title="Remove colour"
+                            >
+                              <FiTrash2 size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-[#9a9a9a]">
+                        Add at least one colour. Colours are saved separately from images.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2">
                   <div className="flex items-center justify-between">
                     <label className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6b6b6b]">
                       Product Images (Upload by Colour)
@@ -1337,7 +1491,7 @@ export default function AdminProductManager({ category, title }) {
                       <p className="text-xs text-[#6b6b6b]">Uploading images...</p>
                     ) : null}
                     <p className="text-xs text-[#9a9a9a]">
-                      Enter or select a colour, then upload images. Colour tags are managed automatically.
+                      Enter or select a colour, then upload images. This does not overwrite your colour list.
                     </p>
                     {normalizeColorImages(form.colorImages).map((entry) => (
                       <div key={entry.colorName}>

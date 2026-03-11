@@ -19,7 +19,22 @@ import {
 
 import "../pageStyles/SearchResults.css";
 
-const SIZES = ["XS", "S", "M", "L", "XL", "2XL", "3XL", "4XL"];
+const SIZES = [
+  "XS",
+  "S",
+  "M",
+  "L",
+  "XL",
+  "2XL",
+  "3XL",
+  "4XL",
+  "5XL",
+  "6XL",
+  "7XL",
+  "8XL",
+  "9XL",
+  "10XL",
+];
 
 const GARMENT_TYPES = [
   "Suit Set",
