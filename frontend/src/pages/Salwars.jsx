@@ -48,7 +48,7 @@ const GARMENT_TYPES = [
 const FABRIC_TYPES = [
   "Cotton",
   "Handblock Printed Cotton",
-  "Kota Cotton",
+  "Kotta Doria Cotton",
   "Silk Cotton",
   "Kalamkari",
   "Chikankari",
@@ -759,3 +759,4 @@ export default function Salwars() {
     </div>
   );
 }
+

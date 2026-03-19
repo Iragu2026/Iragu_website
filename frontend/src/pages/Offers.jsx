@@ -29,7 +29,7 @@ const FABRIC_TYPES = [
   "Linen",
   "Mangalagiri",
   "Chanderi",
-  "Kota Cotton",
+  "Kotta Doria Cotton",
   "Hand Embroidery",
   "Pure Cotton",
   "Silk Cotton",
@@ -705,3 +705,4 @@ export default function Offers() {
     </div>
   );
 }
+

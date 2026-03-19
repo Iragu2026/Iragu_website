@@ -27,7 +27,7 @@ const FABRIC_TYPES = [
   "Linen",
   "Mangalagiri",
   "Chanderi",
-  "Kota Cotton",
+  "Kotta Doria Cotton",
   "Hand Embroidery",
 ];
 
@@ -491,4 +491,5 @@ export default function Sarees() {
     </div>
   );
 }
+
 

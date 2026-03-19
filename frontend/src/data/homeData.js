@@ -24,5 +24,20 @@ export const heroBanners = [
     image: "/images/banner5.PNG",
     alt: "Banner 5",
   },
+  {
+    id: "banner-6",
+    image: "/images/testimage.jpg",
+    alt: "Banner 6",
+  },
+  {
+    id: "banner-7",
+    image: "/images/testimage2.png",
+    alt: "Banner 7",
+  },
+  {
+    id: "banner-8",
+    image: "/images/testimage3.png",
+    alt: "Banner 8",
+  }
 ];
 

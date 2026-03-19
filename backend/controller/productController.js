@@ -7,17 +7,45 @@ import sharp from "sharp";
 import { nanoid } from "nanoid";
 import { deleteObjectsFromR2, isR2Configured, uploadBufferToR2 } from "../utils/r2Storage.js";
 
+const KOTTA_DORIA_COTTON_LABEL = "Kotta Doria Cotton";
+const KOTTA_DORIA_COTTON_PATTERN = /^kott?a(?:\s+doria)?\s+cotton$/i;
+
+const normalizeKottaDoriaToken = (value) => {
+    const token = String(value || "").trim();
+    if (!token) return "";
+    return KOTTA_DORIA_COTTON_PATTERN.test(token)
+        ? KOTTA_DORIA_COTTON_LABEL
+        : token;
+};
+
 const normalizeSubCategory = (value) => {
     if (Array.isArray(value)) {
         return value
-            .map((v) => String(v || "").trim())
+            .map((v) => normalizeKottaDoriaToken(v))
             .filter(Boolean)
             .join(", ");
     }
     if (typeof value === "string") {
         return value
             .split(",")
-            .map((v) => v.trim())
+            .map((v) => normalizeKottaDoriaToken(v))
+            .filter(Boolean)
+            .join(", ");
+    }
+    return "";
+};
+
+const normalizeFabric = (value) => {
+    if (Array.isArray(value)) {
+        return value
+            .map((v) => normalizeKottaDoriaToken(v))
+            .filter(Boolean)
+            .join(", ");
+    }
+    if (typeof value === "string") {
+        return value
+            .split(",")
+            .map((v) => normalizeKottaDoriaToken(v))
             .filter(Boolean)
             .join(", ");
     }
@@ -127,6 +155,16 @@ const flattenColorImages = (colorImages) =>
         .flatMap((ci) => (Array.isArray(ci.images) ? ci.images : []))
         .filter((img) => Boolean(img?.url));
 
+const normalizeProductForResponse = (product) => {
+    if (!product) return product;
+    const normalized = typeof product.toObject === "function"
+        ? product.toObject()
+        : { ...product };
+    normalized.subCategory = normalizeSubCategory(normalized.subCategory);
+    normalized.fabric = normalizeFabric(normalized.fabric);
+    return normalized;
+};
+
 const extractImageKeys = (product) => {
     const keys = new Set();
     const pushKey = (img) => {
@@ -144,6 +182,15 @@ const extractImageKeys = (product) => {
 export const createProducts = handleAsyncError(async (req, res, next) => {
     if (Object.prototype.hasOwnProperty.call(req.body, "subCategory")) {
         req.body.subCategory = normalizeSubCategory(req.body.subCategory);
+    }
+    if (hasOwn(req.body, "fabric")) {
+        req.body.fabric = normalizeFabric(req.body.fabric);
+    }
+    if (hasOwn(req.body, "length")) {
+        req.body.length = String(req.body.length || "").trim();
+    }
+    if (hasOwn(req.body, "blouseLength")) {
+        req.body.blouseLength = String(req.body.blouseLength || "").trim();
     }
     if (hasOwn(req.body, "occasion")) {
         req.body.occasion = normalizeOccasions(req.body.occasion);
@@ -180,7 +227,7 @@ export const createProducts = handleAsyncError(async (req, res, next) => {
     res.status(201).json({
         success: true,
         message: "Product created successfully",
-        product: product
+        product: normalizeProductForResponse(product),
     });
 });
 
@@ -251,10 +298,13 @@ export const getAllProducts = handleAsyncError(async (req, res, next) => {
     // Apply sort + pagination
     apiFeatures.sort().pagination(resultsPerPage);
     const products = await apiFeatures.query;
+    const normalizedProducts = (products || []).map((product) =>
+        normalizeProductForResponse(product)
+    );
 
     res.status(200).json({
         success: true,
-        products: products || [],
+        products: normalizedProducts,
         productCount: productCount,
         totalPages: totalPages,
         currentPage: page,
@@ -266,6 +316,15 @@ export const getAllProducts = handleAsyncError(async (req, res, next) => {
 export const updateProduct = handleAsyncError(async (req, res, next) => {
     if (Object.prototype.hasOwnProperty.call(req.body, "subCategory")) {
         req.body.subCategory = normalizeSubCategory(req.body.subCategory);
+    }
+    if (hasOwn(req.body, "fabric")) {
+        req.body.fabric = normalizeFabric(req.body.fabric);
+    }
+    if (hasOwn(req.body, "length")) {
+        req.body.length = String(req.body.length || "").trim();
+    }
+    if (hasOwn(req.body, "blouseLength")) {
+        req.body.blouseLength = String(req.body.blouseLength || "").trim();
     }
     if (hasOwn(req.body, "occasion")) {
         req.body.occasion = normalizeOccasions(req.body.occasion);
@@ -307,7 +366,7 @@ export const updateProduct = handleAsyncError(async (req, res, next) => {
     res.status(200).json({
         success: true,
         message: "Product updated successfully",
-        product: product
+        product: normalizeProductForResponse(product),
     });
 });
 
@@ -342,7 +401,7 @@ export const getSingleProductDetails = handleAsyncError(async (req, res, next) =
     res.status(200).json({
         success: true,
         message: "Product details",
-        product: product
+        product: normalizeProductForResponse(product),
     });
 });
 
@@ -407,7 +466,7 @@ export const createAndUpdateProductReviews = handleAsyncError(async (req, res, n
     res.status(200).json({
         success: true,
         message: "Review submitted successfully",
-        product: product
+        product: normalizeProductForResponse(product),
     });
 });
 
@@ -463,8 +522,11 @@ export const adminGetAllProducts = handleAsyncError(async (req, res, next) => {
     const query = {};
     if (req.query.category) query.category = req.query.category;
     const products = await Product.find(query).sort({ createdAt: -1 });
+    const normalizedProducts = (products || []).map((product) =>
+        normalizeProductForResponse(product)
+    );
     res.status(200).json({
         success: true,
-        products: products
+        products: normalizedProducts,
     });
 });

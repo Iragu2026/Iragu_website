@@ -1,3 +1,15 @@
+const KOTTA_DORIA_QUERY_PATTERN = /kott?a(?:\s+doria)?\s+cotton/i;
+const KOTTA_DORIA_QUERY_REGEX = /(kotta\s+doria\s+cotton|kott?a\s+cotton)/i;
+
+const buildAliasAwareRegexQuery = (value) => {
+    const normalized = String(value || "").trim();
+    if (!normalized) return null;
+    if (KOTTA_DORIA_QUERY_PATTERN.test(normalized)) {
+        return { $regex: KOTTA_DORIA_QUERY_REGEX };
+    }
+    return { $regex: normalized, $options: "i" };
+};
+
 class ApiFunctionality {
     constructor(query, queryStr) {
         this.query = query;
@@ -6,11 +18,12 @@ class ApiFunctionality {
 
     // Search by keyword in both name AND description
     search() {
-        const keyword = this.queryStr.keyword
+        const keywordRegex = buildAliasAwareRegexQuery(this.queryStr.keyword);
+        const keyword = keywordRegex
             ? {
                   $or: [
-                      { name: { $regex: this.queryStr.keyword, $options: "i" } },
-                      { description: { $regex: this.queryStr.keyword, $options: "i" } },
+                      { name: keywordRegex },
+                      { description: keywordRegex },
                   ],
               }
             : {};
@@ -29,16 +42,22 @@ class ApiFunctionality {
 
         // Handle subCategory as a regex match (partial, case-insensitive)
         if (this.queryStr.subCategory) {
-            this.query = this.query.find({
-                subCategory: { $regex: this.queryStr.subCategory, $options: "i" },
-            });
+            const subCategoryRegex = buildAliasAwareRegexQuery(this.queryStr.subCategory);
+            if (subCategoryRegex) {
+                this.query = this.query.find({
+                    subCategory: subCategoryRegex,
+                });
+            }
         }
 
         // Handle fabric as a regex match (partial, case-insensitive)
         if (this.queryStr.fabric) {
-            this.query = this.query.find({
-                fabric: { $regex: this.queryStr.fabric, $options: "i" },
-            });
+            const fabricRegex = buildAliasAwareRegexQuery(this.queryStr.fabric);
+            if (fabricRegex) {
+                this.query = this.query.find({
+                    fabric: fabricRegex,
+                });
+            }
         }
 
         // Handle color as a regex match on colors.name (case-insensitive)

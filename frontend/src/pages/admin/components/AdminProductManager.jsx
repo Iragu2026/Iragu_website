@@ -35,7 +35,7 @@ const SAREE_SUBCATEGORY_OPTIONS = [
   "Linen",
   "Mangalagiri",
   "Chanderi",
-  "Kota Cotton",
+  "Kotta Doria Cotton",
   "Hand Embroidery",
 ];
 const SAREE_OCCASION_OPTIONS = [
@@ -106,7 +106,7 @@ const SALWAR_OPTIONS_BY_TYPE = {
   "Suit Set": [
     "Cotton",
     "Handblock Printed Cotton",
-    "Kota Cotton",
+    "Kotta Doria Cotton",
     "Silk Cotton",
     "Kalamkari",
     "Chikankari",
@@ -115,12 +115,14 @@ const SALWAR_OPTIONS_BY_TYPE = {
   "Coord Set": ["Cotton", "Kalamkari", "Chikankari", "Ajrak"],
   Kurta: ["Cotton", "Kalamkari", "Chikankari", "Ajrak"],
   "Short Top": ["Cotton", "Kalamkari", "Ajrak"],
-  Duppatta: ["Cotton", "Kota Cotton"],
+  Duppatta: ["Cotton", "Kotta Doria Cotton"],
   Stole: ["Cotton"],
 };
 const SALWAR_OPTION_SET = new Set(
   Object.values(SALWAR_OPTIONS_BY_TYPE).flat()
 );
+const KOTTA_DORIA_COTTON_LABEL = "Kotta Doria Cotton";
+const KOTTA_DORIA_COTTON_PATTERN = /^kott?a(?:\s+doria)?\s+cotton$/i;
 
 const normalizeColourName = (value) => String(value || "").trim().toLowerCase();
 const COLOUR_OPTION_BY_KEY = new Map(
@@ -164,14 +166,22 @@ const emptyImage = () => ({
   url: "",
 });
 
+function normalizeKottaDoriaLabel(value) {
+  const token = String(value || "").trim();
+  if (!token) return "";
+  return KOTTA_DORIA_COTTON_PATTERN.test(token)
+    ? KOTTA_DORIA_COTTON_LABEL
+    : token;
+}
+
 function parseSubCategoryList(value) {
   if (Array.isArray(value)) {
-    return value.map((v) => String(v || "").trim()).filter(Boolean);
+    return value.map((v) => normalizeKottaDoriaLabel(v)).filter(Boolean);
   }
   if (typeof value === "string") {
     return value
       .split(",")
-      .map((v) => v.trim())
+      .map((v) => normalizeKottaDoriaLabel(v))
       .filter(Boolean);
   }
   return [];
@@ -307,6 +317,7 @@ function buildEmptyProduct(category) {
     selectedUploadColor: "",
     fabric: "",
     length: "",
+    blouseLength: "",
     occasionCsv: "",
     occasionValues: [],
     isNewArrival: false,
@@ -380,7 +391,7 @@ function normalizeProductPayload(form) {
       ? String(form.salwarType || form.subCategory || "").trim()
       : form.subCategory?.trim() || "";
 
-  let normalizedFabric = form.fabric?.trim() || "";
+  let normalizedFabric = parseSubCategoryList(form.fabric).join(", ");
   let normalizedOccasion = occasion;
 
   if (isSalwar) {
@@ -421,6 +432,7 @@ function normalizeProductPayload(form) {
     subCategory: normalizedSubCategory,
     fabric: normalizedFabric,
     length: form.length?.trim() || "",
+    blouseLength: form.blouseLength?.trim() || "",
     occasion: normalizedOccasion,
     isNewArrival: Boolean(form.isNewArrival),
     isBestSeller: Boolean(form.isBestSeller),
@@ -529,6 +541,7 @@ export default function AdminProductManager({ category, title }) {
       selectedUploadColor: normalizedColors.find((c) => c?.name)?.name || "",
       fabric: p.fabric || "",
       length: p.length || "",
+      blouseLength: p.blouseLength || "",
       occasionCsv: Array.isArray(p.occasion) ? p.occasion.join(", ") : "",
       occasionValues: Array.isArray(p.occasion) ? p.occasion : [],
       isNewArrival: Boolean(p.isNewArrival),
@@ -1119,18 +1132,32 @@ export default function AdminProductManager({ category, title }) {
                 </div>
 
                 {category === "Saree" ? (
-                  <div>
-                    <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6b6b6b]">
-                      Length
-                    </label>
-                    <input
-                      value={form.length}
-                      onChange={(e) => setForm((p) => ({ ...p, length: e.target.value }))
-                      }
-                      className="w-full rounded-lg border border-black/10 px-4 py-3 text-sm outline-none transition focus:border-[color:var(--brand)]"
-                      placeholder='e.g. 6.25 meters'
-                     name="e-g-6-25-meters" id="e-g-6-25-meters" aria-label="e.g. 6.25 meters" />
-                  </div>
+                  <>
+                    <div>
+                      <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6b6b6b]">
+                        Length
+                      </label>
+                      <input
+                        value={form.length}
+                        onChange={(e) => setForm((p) => ({ ...p, length: e.target.value }))
+                        }
+                        className="w-full rounded-lg border border-black/10 px-4 py-3 text-sm outline-none transition focus:border-[color:var(--brand)]"
+                        placeholder='e.g. 6.25 meters'
+                       name="e-g-6-25-meters" id="e-g-6-25-meters" aria-label="e.g. 6.25 meters" />
+                    </div>
+                    <div>
+                      <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[#6b6b6b]">
+                        Blouse Length
+                      </label>
+                      <input
+                        value={form.blouseLength}
+                        onChange={(e) => setForm((p) => ({ ...p, blouseLength: e.target.value }))
+                        }
+                        className="w-full rounded-lg border border-black/10 px-4 py-3 text-sm outline-none transition focus:border-[color:var(--brand)]"
+                        placeholder='e.g. 0.8 meters'
+                       name="e-g-0-8-meters" id="e-g-0-8-meters" aria-label="e.g. 0.8 meters" />
+                    </div>
+                  </>
                 ) : null}
 
                 <div className="sm:col-span-2">
@@ -1550,3 +1577,4 @@ export default function AdminProductManager({ category, title }) {
     </div>
   );
 }
+

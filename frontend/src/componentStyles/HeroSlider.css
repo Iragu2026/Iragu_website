@@ -15,12 +15,12 @@
 
   .heroSlider__media {
     @apply relative w-full overflow-hidden;
-    height: clamp(380px, min(80vh, 72vw), 960px);
+    aspect-ratio: 2 / 1;
+    max-height: min(80vh, 960px);
   }
 
   .heroSlider__image {
     @apply h-full w-full object-cover object-center;
-    transform: scale(1.03);
     transition: transform 1400ms ease;
   }
 
@@ -46,10 +46,6 @@
     @apply w-8 bg-white;
   }
 
-  .heroSlider .swiper-slide-active .heroSlider__image {
-    transform: scale(1);
-  }
-
   .heroSlider .swiper-slide-active .heroSlider__veil {
     opacity: 1;
   }
@@ -57,34 +53,21 @@
   /* Tablets & small laptops */
   @media (max-width: 1024px) {
     .heroSlider__media {
-      height: clamp(320px, min(62vh, 74vw), 760px);
+      max-height: min(60vh, 760px);
     }
   }
 
-  /* Phones — lock to 16:9 so landscape banners never become near-square */
+  /* Phones */
   @media (max-width: 640px) {
     .heroSlider__media {
-      height: auto;
-      aspect-ratio: 16 / 9;
-      min-height: 180px;
       max-height: 50svh;
-    }
-  }
-
-  /* Short viewports on wider screens (landscape tablets, small browser windows) */
-  @media (max-height: 700px) and (min-width: 641px) {
-    .heroSlider__media {
-      height: clamp(220px, 58vh, 560px);
     }
   }
 
   /* Phones in landscape */
   @media (max-height: 520px) and (orientation: landscape) {
     .heroSlider__media {
-      height: auto;
-      aspect-ratio: 3 / 1;
-      min-height: 160px;
-      max-height: 65vh;
+      max-height: 70vh;
     }
   }
 }

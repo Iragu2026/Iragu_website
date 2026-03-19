@@ -37,7 +37,7 @@ const SAREES_DROPDOWN = {
         { label: "Linen", to: "/sarees/linen" },
         { label: "Mangalagiri", to: "/sarees/mangalagiri" },
         { label: "Chanderi", to: "/sarees/chanderi" },
-        { label: "Kota Cotton", to: "/sarees/kota-cotton" },
+        { label: "Kotta Doria Cotton", to: "/sarees/kota-cotton" },
         { label: "Hand Embroidery", to: "/sarees/hand-embroidery" },
       ],
     },
@@ -62,7 +62,7 @@ const SALWARS_DROPDOWN = {
       children: [
         { label: "Cotton", to: "/salwars/cotton-suit-sets" },
         { label: "Handblock Printed Cotton", to: "/salwars/handblock-printed-cotton-suit-sets" },
-        { label: "Kota Cotton", to: "/salwars/kota-cotton-suit-sets" },
+        { label: "Kotta Doria Cotton", to: "/salwars/kota-cotton-suit-sets" },
         { label: "Silk Cotton", to: "/salwars/silk-cotton-suit-sets" },
         { label: "Kalamkari", to: "/salwars/kalamkari-suit-sets" },
         { label: "Chikankari", to: "/salwars/chikankari-suit-sets" },
@@ -103,7 +103,7 @@ const SALWARS_DROPDOWN = {
       to: "/salwars",
       children: [
         { label: "Cotton", to: "/salwars/cotton-duppattas" },
-        { label: "Kota Cotton", to: "/salwars/kota-cotton-duppattas" },
+        { label: "Kotta Doria Cotton", to: "/salwars/kota-cotton-duppattas" },
       ],
     },
     {
@@ -762,4 +762,5 @@ export default function Navbar() {
     </header>
   );
 }
+
 

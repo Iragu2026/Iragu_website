@@ -141,6 +141,11 @@ const productSchema = new mongoose.Schema({
         default: "",
         // Saree length (e.g. "6.25 meters")
     },
+    blouseLength: {
+        type: String,
+        default: "",
+        // Saree blouse length (e.g. "0.8 meters")
+    },
     washCare: {
         type: String,
         default: "",

@@ -24,7 +24,7 @@ const SLUG_MAP = {
   /* ── Suit Sets ── */
   "cotton-suit-sets":                    { title: "Cotton Suit Sets",                 subCategory: "Suit Set",  fabric: "Cotton",                   occasion: "" },
   "handblock-printed-cotton-suit-sets":  { title: "Handblock Printed Cotton Suit Sets", subCategory: "Suit Set", fabric: "Handblock Printed Cotton", occasion: "" },
-  "kota-cotton-suit-sets":               { title: "Kota Cotton Suit Sets",            subCategory: "Suit Set",  fabric: "Kota Cotton",              occasion: "" },
+  "kota-cotton-suit-sets":               { title: "Kotta Doria Cotton Suit Sets",            subCategory: "Suit Set",  fabric: "Kotta Doria Cotton",              occasion: "" },
   "silk-cotton-suit-sets":               { title: "Silk Cotton Suit Sets",            subCategory: "Suit Set",  fabric: "Silk Cotton",              occasion: "" },
   "kalamkari-suit-sets":                 { title: "Kalamkari Suit Sets",              subCategory: "Suit Set",  fabric: "Kalamkari",                occasion: "" },
   "chikankari-suit-sets":                { title: "Chikankari Suit Sets",             subCategory: "Suit Set",  fabric: "Chikankari",               occasion: "" },
@@ -49,7 +49,7 @@ const SLUG_MAP = {
 
   /* ── Duppattas ── */
   "cotton-duppattas":                    { title: "Cotton Duppattas",                 subCategory: "Duppatta",  fabric: "Cotton",                   occasion: "" },
-  "kota-cotton-duppattas":               { title: "Kota Cotton Duppattas",            subCategory: "Duppatta",  fabric: "Kota Cotton",              occasion: "" },
+  "kota-cotton-duppattas":               { title: "Kotta Doria Cotton Duppattas",            subCategory: "Duppatta",  fabric: "Kotta Doria Cotton",              occasion: "" },
 
   /* ── Stoles ── */
   "cotton-stoles":                       { title: "Cotton Stoles",                    subCategory: "Stole",     fabric: "Cotton",                   occasion: "" },
@@ -533,3 +533,4 @@ export default function SalwarSubCategoryPage() {
     </div>
   );
 }
+

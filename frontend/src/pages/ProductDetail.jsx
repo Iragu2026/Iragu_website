@@ -400,12 +400,7 @@ export default function ProductDetail() {
                     }`}
                   />
                   {!isSoldOut ? (
-                    <span className="text-sm font-medium text-green-700">
-                      In Stock
-                      <span className="ml-1 font-normal text-[#6b6b6b]">
-                        — {product.stock} {product.stock === 1 ? "piece" : "pieces"} available
-                      </span>
-                    </span>
+                    <span className="text-sm font-medium text-green-700">In Stock</span>
                   ) : (
                     <span className="text-sm font-semibold text-red-600">Out of Stock</span>
                   )}
@@ -522,7 +517,7 @@ export default function ProductDetail() {
                     defaultOpen
                   >
                     <div className="space-y-3">
-                      {(product.fabric || product.length) && (
+                      {(product.fabric || product.length || product.blouseLength) && (
                         <div className="space-y-3">
                           {product.fabric && (
                             <div className="grid grid-cols-[104px_1fr] items-start gap-4">
@@ -541,6 +536,16 @@ export default function ProductDetail() {
                               </p>
                               <p className="text-sm text-[#1f1f1f]">
                                 {product.length}
+                              </p>
+                            </div>
+                          )}
+                          {product.blouseLength && (
+                            <div className="grid grid-cols-[104px_1fr] items-start gap-4">
+                              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#6b6b6b]">
+                                Blouse Length
+                              </p>
+                              <p className="text-sm text-[#1f1f1f]">
+                                {product.blouseLength}
                               </p>
                             </div>
                           )}
@@ -662,4 +667,3 @@ function computeBreakdown(reviews) {
   });
   return [5, 4, 3, 2, 1].map((s) => ({ stars: s, count: counts[s] }));
 }
-

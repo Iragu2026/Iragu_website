@@ -1,5 +1,5 @@
-import React, { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import React, { useEffect, useRef } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import SiteLayout from "./components/SiteLayout.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -28,6 +28,25 @@ import AdminOrders from "./pages/admin/AdminOrders.jsx";
 import AdminExchanges from "./pages/admin/AdminExchanges.jsx";
 import { checkUserSession } from "./features/user/userSlice.js";
 
+function MetaPixelPageViewTracker() {
+  const location = useLocation();
+  const hasSkippedInitialPageView = useRef(false);
+
+  useEffect(() => {
+    // Base pixel in index.html already tracks the initial page load.
+    if (!hasSkippedInitialPageView.current) {
+      hasSkippedInitialPageView.current = true;
+      return;
+    }
+
+    if (typeof window.fbq === "function") {
+      window.fbq("track", "PageView");
+    }
+  }, [location.pathname, location.search]);
+
+  return null;
+}
+
 function App() {
   const dispatch = useDispatch();
 
@@ -37,6 +56,7 @@ function App() {
 
   return (
     <Router>
+      <MetaPixelPageViewTracker />
       <Routes>
         {/* Public pages with SiteLayout (Navbar + Footer) */}
         <Route element={<SiteLayout />}>

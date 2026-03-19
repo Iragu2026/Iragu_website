@@ -19,7 +19,7 @@ const SLUG_MAP = {
   linen: { title: "Linen Sarees", subCategory: "Linen" },
   mangalagiri: { title: "Mangalagiri Sarees", subCategory: "Mangalagiri" },
   chanderi: { title: "Chanderi Sarees", subCategory: "Chanderi" },
-  "kota-cotton": { title: "Kota Cotton Sarees", subCategory: "Kota Cotton" },
+  "kota-cotton": { title: "Kotta Doria Cotton Sarees", subCategory: "Kotta Doria Cotton" },
   "hand-embroidery": {
     title: "Hand Embroidery Sarees",
     subCategory: "Hand Embroidery",
@@ -375,3 +375,4 @@ export default function SubCategoryPage() {
     </div>
   );
 }
+
