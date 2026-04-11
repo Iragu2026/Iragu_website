@@ -480,7 +480,7 @@ export default function Checkout() {
         state: { order: verifyResult?.order || null },
       });
     } catch (err) {
-      const msg = err?.message || "Failed to place order. Please try again.";
+      const msg = typeof err === "string" ? err : (err?.message || "Failed to place order. Please try again.");
       toast.error(msg);
     } finally {
       setSubmitting(false);

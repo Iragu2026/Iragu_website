@@ -467,10 +467,21 @@ export const verifyRazorpayPaymentAndCreateOrder = handleAsyncError(async (req, 
     }
 
     validateShippingInfo(shippingInfo);
-    const normalizedShippingInfo = await validateAndNormalizeAddressFromPinCode(shippingInfo, {
-        requiredPinCode: true,
-        label: "Shipping",
-    });
+
+    let normalizedShippingInfo;
+    try {
+        normalizedShippingInfo = await validateAndNormalizeAddressFromPinCode(shippingInfo, {
+            requiredPinCode: true,
+            label: "Shipping",
+        });
+    } catch (pinError) {
+        if (pinError.statusCode === 503) {
+            console.warn("[payment-verify] PIN validation unavailable, using frontend-provided address");
+            normalizedShippingInfo = { ...shippingInfo, country: "India" };
+        } else {
+            throw pinError;
+        }
+    }
 
     const requestedBillingInfo = billingType === "different" ? (billingInfo || {}) : normalizedShippingInfo;
     const hasBillingPinCode =
@@ -478,12 +489,24 @@ export const verifyRazorpayPaymentAndCreateOrder = handleAsyncError(async (req, 
         requestedBillingInfo?.pinCode !== null &&
         String(requestedBillingInfo?.pinCode).trim() !== "";
 
-    const finalBillingInfo = billingType === "different"
-        ? await validateAndNormalizeAddressFromPinCode(requestedBillingInfo, {
-            requiredPinCode: hasBillingPinCode,
-            label: "Billing",
-        })
-        : normalizedShippingInfo;
+    let finalBillingInfo;
+    if (billingType === "different") {
+        try {
+            finalBillingInfo = await validateAndNormalizeAddressFromPinCode(requestedBillingInfo, {
+                requiredPinCode: hasBillingPinCode,
+                label: "Billing",
+            });
+        } catch (pinError) {
+            if (pinError.statusCode === 503) {
+                console.warn("[payment-verify] Billing PIN validation unavailable, using frontend-provided address");
+                finalBillingInfo = { ...requestedBillingInfo, country: "India" };
+            } else {
+                throw pinError;
+            }
+        }
+    } else {
+        finalBillingInfo = normalizedShippingInfo;
+    }
 
     const { normalizedOrderItems, pricing } = await buildOrderFromItems(orderItems, { giftWrap });
 

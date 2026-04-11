@@ -1,8 +1,10 @@
 import https from "https";
+import dns from "node:dns/promises";
 import HandleError from "./handleError.js";
 
 const INDIAN_PINCODE_REGEX = /^[1-9][0-9]{5}$/;
-const INDIA_POST_API_BASE = "https://api.postalpincode.in/pincode/";
+const INDIA_POST_API_HOST = "api.postalpincode.in";
+const INDIA_POST_API_PATH = "/pincode/";
 
 const SUPPORTED_INDIAN_STATES = new Set([
     "Andhra Pradesh",
@@ -45,28 +47,45 @@ const isPinMissing = (pinCode) =>
     pinCode === null ||
     String(pinCode).trim() === "";
 
-const getJson = (url) =>
-    new Promise((resolve, reject) => {
-        https
-            .get(url, (res) => {
-                let raw = "";
-                res.on("data", (chunk) => {
-                    raw += chunk;
-                });
-                res.on("end", () => {
-                    const statusCode = Number(res.statusCode || 0);
-                    if (statusCode < 200 || statusCode >= 300) {
-                        return reject(new HandleError("Unable to verify PIN code right now.", 503));
-                    }
-                    try {
-                        const parsed = JSON.parse(raw);
-                        return resolve(parsed);
-                    } catch (error) {
-                        return reject(new HandleError("Unable to verify PIN code right now.", 503));
-                    }
-                });
-            })
-            .on("error", () => reject(new HandleError("Unable to verify PIN code right now.", 503)));
+const resolveIpv4 = async (hostname) => {
+    try {
+        const ips = await dns.resolve4(hostname);
+        if (ips && ips.length > 0) return ips[0];
+    } catch { /* fall through */ }
+    return null;
+};
+
+const getJson = (pinCode) =>
+    new Promise(async (resolve, reject) => {
+        const ipv4 = await resolveIpv4(INDIA_POST_API_HOST);
+        const requestOptions = {
+            hostname: ipv4 || INDIA_POST_API_HOST,
+            path: `${INDIA_POST_API_PATH}${pinCode}`,
+            method: "GET",
+            timeout: 8000,
+            headers: { Host: INDIA_POST_API_HOST },
+        };
+        if (ipv4) {
+            requestOptions.servername = INDIA_POST_API_HOST;
+        }
+
+        const req = https.get(requestOptions, (res) => {
+            let raw = "";
+            res.on("data", (chunk) => { raw += chunk; });
+            res.on("end", () => {
+                const statusCode = Number(res.statusCode || 0);
+                if (statusCode < 200 || statusCode >= 300) {
+                    return reject(new HandleError("Unable to verify PIN code right now.", 503));
+                }
+                try {
+                    return resolve(JSON.parse(raw));
+                } catch {
+                    return reject(new HandleError("Unable to verify PIN code right now.", 503));
+                }
+            });
+        });
+        req.on("error", () => reject(new HandleError("Unable to verify PIN code right now.", 503)));
+        req.on("timeout", () => { req.destroy(); reject(new HandleError("PIN code verification timed out.", 503)); });
     });
 
 export const resolveIndianPinCode = async (pinCode, label = "Address") => {
@@ -75,7 +94,7 @@ export const resolveIndianPinCode = async (pinCode, label = "Address") => {
         throw new HandleError(`${label} PIN code must be a valid 6-digit Indian PIN code`, 400);
     }
 
-    const result = await getJson(`${INDIA_POST_API_BASE}${normalizedPinCode}`);
+    const result = await getJson(normalizedPinCode);
     const firstEntry = Array.isArray(result) ? result[0] : null;
 
     if (
