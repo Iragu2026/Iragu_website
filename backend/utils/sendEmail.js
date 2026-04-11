@@ -10,7 +10,7 @@
 import nodemailer from "nodemailer";
 import dns from "node:dns/promises";
 import dotenv from "dotenv";
-dotenv.config();
+dotenv.config({ path: "backend/config/config.env" });
 
 const normalizeText = (value) => String(value ?? "").trim();
 const toBool = (value) => /^(1|true|yes)$/i.test(String(value ?? "").trim());

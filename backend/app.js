@@ -60,6 +60,13 @@ app.use("/api/v1/password/forgot", passwordResetRateLimitMiddleware);
 app.use("/api/v1/password/reset", passwordResetRateLimitMiddleware);
 app.use("/api/v1/password/update", authRateLimitMiddleware);
 
+app.get("/", (req, res) => {
+    res.status(200).json({
+        success: true,
+        message: "Iragu API is running",
+    });
+});
+
 app.get("/api/v1/health", (req, res) => {
     res.status(200).json({
         success: true,

@@ -33,10 +33,11 @@ export const fetchOrderDetails = createAsyncThunk(
 
 export const createRazorpayOrder = createAsyncThunk(
   "orders/createRazorpayOrder",
-  async ({ orderItems }, { rejectWithValue }) => {
+  async ({ orderItems, giftWrap = false }, { rejectWithValue }) => {
     try {
       const { data } = await axiosInstance.post("/api/v1/payment/razorpay/order", {
         orderItems,
+        giftWrap,
       });
       return data;
     } catch (error) {

@@ -1,7 +1,7 @@
 import handleAsyncError from "../middleware/handleAsyncError.js";
 import User from "../models/userModel.js";
 import HandleError from "../utils/handleError.js";
-import { sendToken } from "../utils/jwtToken.js";
+import { sendToken, buildCookieOptions } from "../utils/jwtToken.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import crypto from "crypto";
 import sharp from "sharp";
@@ -76,19 +76,10 @@ export const loginUser = handleAsyncError(async (req, res, next) => {
 
 // Logout User
 export const logoutUser = handleAsyncError(async (req, res, next) => {
-    const isProduction = process.env.NODE_ENV === "production";
-    const requestedSameSite = String(
-        process.env.COOKIE_SAMESITE || (isProduction ? "none" : "lax")
-    ).toLowerCase();
-    const sameSite = ["lax", "strict", "none"].includes(requestedSameSite)
-        ? requestedSameSite
-        : "lax";
-    res.cookie("token", null, {
-        expires: new Date(Date.now()),
-        httpOnly: true,
-        secure: sameSite === "none" ? true : isProduction,
-        sameSite,
-    });
+    const options = buildCookieOptions();
+    options.expires = new Date(0);
+
+    res.cookie("token", "", options);
     res.status(200).json({
         success: true,
         message: "Logged out successfully",

@@ -16,12 +16,29 @@ export default (err, req, res, next) => {
         err = new HandleError(message, 400);
     }
 
+    // JWT errors
+    if (err.name === "JsonWebTokenError") {
+        err = new HandleError("Authentication token is invalid. Please login again", 401);
+    }
+    if (err.name === "TokenExpiredError") {
+        err = new HandleError("Authentication token has expired. Please login again", 401);
+    }
+
     // Multer upload errors
     if (err.name === "MulterError") {
         err = new HandleError(err.message, 400);
     }
     if (err.message === "Only image files are allowed") {
         err = new HandleError(err.message, 400);
+    }
+
+    // CORS errors
+    if (err.message === "Not allowed by CORS") {
+        err = new HandleError("Cross-origin request blocked", 403);
+    }
+
+    if (process.env.NODE_ENV !== "production") {
+        console.error("[Error]", err.message, err.stack);
     }
 
     res.status(err.statusCode).json({
